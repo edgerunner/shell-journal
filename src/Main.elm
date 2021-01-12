@@ -33,9 +33,16 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     arguments flags
         |> decodeCommand
-        |> Debug.toString
-        |> put
+        |> Maybe.map (putAll [ Debug.toString, outputString ])
+        |> Maybe.withDefault Cmd.none
         |> Tuple.pair ()
+
+
+putAll : List (Command -> String) -> Command -> Cmd Msg
+putAll transforms command =
+    transforms
+        |> List.map (put << (|>) command)
+        |> Cmd.batch
 
 
 arguments : Flags -> List String
@@ -111,3 +118,26 @@ type Entry
     = Task
     | Event
     | Note
+
+
+outputString : Command -> String
+outputString command =
+    case command of
+        Add entry content ->
+            symbolFor entry ++ " " ++ content
+
+        _ ->
+            ""
+
+
+symbolFor : Entry -> String
+symbolFor entry =
+    case entry of
+        Task ->
+            "·"
+
+        Event ->
+            "○"
+
+        Note ->
+            " "
