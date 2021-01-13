@@ -8,6 +8,19 @@ import Json.Encode exposing (Value)
 port put : String -> Cmd msg
 
 
+port fs : FSRequest -> Cmd msg
+
+
+port read : (String -> msg) -> Sub msg
+
+
+type alias FSRequest =
+    { method : String
+    , data : String
+    , path : String
+    }
+
+
 type alias Model =
     ()
 
@@ -16,8 +29,8 @@ type alias Flags =
     Value
 
 
-type alias Msg =
-    ()
+type Msg
+    = Read String
 
 
 main : Program Flags Model Msg
@@ -33,16 +46,8 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     arguments flags
         |> decodeCommand
-        |> Maybe.map (putAll [ Debug.toString, outputString ])
-        |> Maybe.withDefault Cmd.none
+        |> mapCommand
         |> Tuple.pair ()
-
-
-putAll : List (Command -> String) -> Command -> Cmd Msg
-putAll transforms command =
-    transforms
-        |> List.map (put << (|>) command)
-        |> Cmd.batch
 
 
 arguments : Flags -> List String
@@ -62,6 +67,32 @@ decodeCommand args =
 
         _ ->
             Nothing
+
+
+path : String
+path =
+    "~/.shjo/today.shjo"
+
+
+mapCommand : Maybe Command -> Cmd Msg
+mapCommand command =
+    case command of
+        Nothing ->
+            Cmd.none
+
+        Just View ->
+            fs
+                { path = path
+                , method = "read"
+                , data = ""
+                }
+
+        Just (Add entry contents) ->
+            fs
+                { path = path
+                , method = "append"
+                , data = appendString entry contents
+                }
 
 
 decodeAdd : List String -> Maybe Command
@@ -100,13 +131,15 @@ nonEmpty list =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update _ model =
-    ( model, Cmd.none )
+update msg () =
+    case msg of
+        Read data ->
+            ( (), put data )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
+    read Read
 
 
 type Command
@@ -120,14 +153,9 @@ type Entry
     | Note
 
 
-outputString : Command -> String
-outputString command =
-    case command of
-        Add entry content ->
-            symbolFor entry ++ " " ++ content
-
-        _ ->
-            ""
+appendString : Entry -> String -> String
+appendString entry content =
+    symbolFor entry ++ " " ++ content ++ "\n"
 
 
 symbolFor : Entry -> String
