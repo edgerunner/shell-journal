@@ -146,13 +146,17 @@ parse data =
 
         Ok lines ->
             lines
-                |> List.map colorLine
+                |> List.indexedMap colorLine
                 |> String.join "\n"
 
 
-colorLine : Line -> String
-colorLine ( entry, string ) =
-    colorCode entry
+colorLine : Int -> Line -> String
+colorLine index ( entry, string ) =
+    colorEscape "30"
+        ++ (String.padLeft 3 ' ' <| String.fromInt (index + 1))
+        ++ colorEscape "0"
+        ++ " "
+        ++ colorCode entry
         ++ symbolFor entry
         ++ " "
         ++ string
