@@ -30,7 +30,7 @@ type alias FSResponse =
 
 
 type alias Model =
-    ()
+    Maybe (Value -> Msg)
 
 
 type alias Flags =
@@ -56,7 +56,6 @@ init flags =
     arguments flags
         |> decodeCommand
         |> mapCommand
-        |> Tuple.pair ()
 
 
 arguments : Flags -> List String
@@ -86,14 +85,14 @@ path =
     ".shjo/today.shjo"
 
 
-mapCommand : Maybe Command -> Cmd Msg
+mapCommand : Maybe Command -> ( Model, Cmd Msg )
 mapCommand command =
     case command of
         Nothing ->
-            Cmd.none
+            ( Nothing, Cmd.none )
 
         Just View ->
-            FS.read path
+            ( Just <| ViewFile, FS.read path )
 
         Just (Add entry contents) ->
             fs
@@ -101,13 +100,10 @@ mapCommand command =
                 , method = "append"
                 , data = Json.Encode.string <| appendString entry contents
                 }
+                |> Tuple.pair Nothing
 
         Just (Check lineNumber) ->
-            fs
-                { path = path
-                , method = "edit"
-                , data = Json.Encode.int lineNumber
-                }
+            ( Just <| CheckTask lineNumber, FS.read path )
 
 
 decodeAdd : List String -> Maybe Command
@@ -154,7 +150,7 @@ nonEmpty list =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg () =
+update msg _ =
     case msg of
         ViewFile response ->
             response
@@ -162,49 +158,30 @@ update msg () =
                 |> Result.withDefault "Parse error"
                 |> parse
                 |> put
-                |> Tuple.pair ()
+                |> Tuple.pair Nothing
 
-        _ ->
-            Debug.todo "Implement CheckTask"
-
-
-readAndThen : FSResponse -> Cmd Msg
-readAndThen response =
-    case response.method of
-        "read" ->
-            put (parse response.body)
-
-        "edit" ->
-            response.body
-                |> checkLine response.data
-                |> writeFile
-
-        _ ->
-            Cmd.none
+        CheckTask checkIndex response ->
+            response
+                |> decodeValue string
+                |> Result.withDefault "Parse error"
+                |> checkLine checkIndex
+                |> FS.write path
+                |> Tuple.pair Nothing
 
 
-writeFile : String -> Cmd Msg
-writeFile data =
-    fs
-        { method = "write"
-        , data = Json.Encode.string data
-        , path = path
-        }
-
-
-checkLine : Value -> String -> String
-checkLine indexValue inputBody =
+checkLine : Int -> String -> String
+checkLine index inputBody =
     inputBody
         |> Parser.run file
         |> Result.withDefault []
-        |> List.indexedMap (checkMatchingIndex (decodeMatchIndex indexValue))
+        |> List.indexedMap (checkMatchingIndex index)
         |> List.map lineToString
         |> String.join ""
 
 
 checkMatchingIndex : Int -> Int -> Line -> Line
 checkMatchingIndex targetIndex currentIndex ( entryType, lineBody ) =
-    if (targetIndex == currentIndex) && (entryType == Task False) then
+    if ((targetIndex - 1) == currentIndex) && (entryType == Task False) then
         ( Task True, lineBody )
 
     else
@@ -217,26 +194,6 @@ lineToString ( entryType, lineBody ) =
         ++ " "
         ++ lineBody
         ++ "\n"
-
-
-indexDecoder : Json.Decode.Decoder Int
-indexDecoder =
-    Json.Decode.int
-        |> Json.Decode.map ((+) -1)
-
-
-decodeMatchIndex : Value -> Int
-decodeMatchIndex =
-    decodeValue indexDecoder
-        >> Result.withDefault -1
-
-
-fsResponseDecoder : Json.Decode.Decoder FSResponse
-fsResponseDecoder =
-    Json.Decode.map3 FSResponse
-        (Json.Decode.field "method" Json.Decode.string)
-        (Json.Decode.field "data" Json.Decode.value)
-        (Json.Decode.field "body" Json.Decode.string)
 
 
 parse : String -> String
@@ -286,8 +243,10 @@ colorEscape inner =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    FS.subscription ViewFile
+subscriptions model =
+    model
+        |> Maybe.map FS.subscription
+        |> Maybe.withDefault Sub.none
 
 
 type Command
