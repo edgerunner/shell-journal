@@ -34,7 +34,7 @@ append path string =
 
 write : String -> String -> Cmd msg
 write path string =
-    request "appendFile" [ Je.string path, Je.string string ]
+    request "writeFile" [ Je.string path, Je.string string ]
 
 
 subscription : (Value -> msg) -> Sub msg
