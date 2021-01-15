@@ -1,5 +1,6 @@
 port module Main exposing (main)
 
+import FS
 import Json.Decode exposing (decodeValue, list, string)
 import Json.Encode exposing (Value)
 import Parser exposing ((|.), (|=), Parser)
@@ -37,7 +38,8 @@ type alias Flags =
 
 
 type Msg
-    = Read Value
+    = ViewFile Value
+    | CheckTask Int Value
 
 
 main : Program Flags Model Msg
@@ -81,7 +83,7 @@ decodeCommand args =
 
 path : String
 path =
-    "~/.shjo/today.shjo"
+    ".shjo/today.shjo"
 
 
 mapCommand : Maybe Command -> Cmd Msg
@@ -91,11 +93,7 @@ mapCommand command =
             Cmd.none
 
         Just View ->
-            fs
-                { path = path
-                , method = "read"
-                , data = Json.Encode.null
-                }
+            FS.read path
 
         Just (Add entry contents) ->
             fs
@@ -158,12 +156,16 @@ nonEmpty list =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg () =
     case msg of
-        Read response ->
+        ViewFile response ->
             response
-                |> decodeValue fsResponseDecoder
-                |> Result.withDefault { method = "error", body = "Filesystem error", data = Json.Encode.null }
-                |> readAndThen
+                |> decodeValue string
+                |> Result.withDefault "Parse error"
+                |> parse
+                |> put
                 |> Tuple.pair ()
+
+        _ ->
+            Debug.todo "Implement CheckTask"
 
 
 readAndThen : FSResponse -> Cmd Msg
@@ -285,7 +287,7 @@ colorEscape inner =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    read Read
+    FS.subscription ViewFile
 
 
 type Command
