@@ -1,6 +1,5 @@
 port module Main exposing (main)
 
-import Dict exposing (update)
 import Json.Decode exposing (decodeValue, list, string)
 import Json.Encode exposing (Value)
 import Parser exposing ((|.), (|=), Parser)
@@ -12,13 +11,20 @@ port put : String -> Cmd msg
 port fs : FSRequest -> Cmd msg
 
 
-port read : (String -> msg) -> Sub msg
+port read : (Value -> msg) -> Sub msg
 
 
 type alias FSRequest =
     { method : String
     , data : Value
     , path : String
+    }
+
+
+type alias FSResponse =
+    { method : String
+    , data : Value
+    , body : String
     }
 
 
@@ -31,7 +37,7 @@ type alias Flags =
 
 
 type Msg
-    = Read String
+    = Read Value
 
 
 main : Program Flags Model Msg
@@ -66,6 +72,9 @@ decodeCommand args =
         "add" :: rest ->
             decodeAdd rest
 
+        "check" :: rest ->
+            decodeCheck rest
+
         _ ->
             Nothing
 
@@ -95,6 +104,13 @@ mapCommand command =
                 , data = Json.Encode.string <| appendString entry contents
                 }
 
+        Just (Check lineNumber) ->
+            fs
+                { path = path
+                , method = "edit"
+                , data = Json.Encode.int lineNumber
+                }
+
 
 decodeAdd : List String -> Maybe Command
 decodeAdd args =
@@ -121,6 +137,14 @@ decodeAdd args =
     Maybe.map2 Add entry contents
 
 
+decodeCheck : List String -> Maybe Command
+decodeCheck args =
+    args
+        |> List.head
+        |> Maybe.andThen String.toInt
+        |> Maybe.map Check
+
+
 nonEmpty : List a -> Maybe (List a)
 nonEmpty list =
     case list of
@@ -134,8 +158,39 @@ nonEmpty list =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg () =
     case msg of
-        Read data ->
-            ( (), put <| parse data )
+        Read response ->
+            response
+                |> decodeFSRead
+                |> parse
+                |> put
+                |> Tuple.pair ()
+
+
+decodeFSRead : Value -> String
+decodeFSRead value =
+    value
+        |> Json.Decode.decodeValue fsResponseDecoder
+        |> Result.mapError (always "Filesystem response decode error")
+        |> Result.map .body
+        |> collapseResult
+
+
+collapseResult : Result a a -> a
+collapseResult result =
+    case result of
+        Ok a ->
+            a
+
+        Err e ->
+            e
+
+
+fsResponseDecoder : Json.Decode.Decoder FSResponse
+fsResponseDecoder =
+    Json.Decode.map3 FSResponse
+        (Json.Decode.field "method" Json.Decode.string)
+        (Json.Decode.field "data" Json.Decode.value)
+        (Json.Decode.field "body" Json.Decode.string)
 
 
 parse : String -> String
@@ -192,6 +247,7 @@ subscriptions _ =
 type Command
     = View
     | Add Entry String
+    | Check Int
 
 
 type Entry

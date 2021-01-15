@@ -17,8 +17,9 @@ main.ports.fs.subscribe(function({method, path, data}) {
     path = path.replace(/^~/, os.homedir())
     switch (method) {
         case "read":
+        case "edit":
             fs.readFile(path, { encoding: "utf8" })
-            .then(body => main.ports.read.send(body))
+            .then(body => main.ports.read.send({body, data, method}))
             .catch(console.error);
 
             break;
