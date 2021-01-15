@@ -13,32 +13,7 @@ main.ports.put.subscribe(function(output) {
   console.log(output + "\n");
 });
 
-main.ports.fs.subscribe(function({method, path, data}) {
-    path = path.replace(/^~/, os.homedir())
-    switch (method) {
-        case "read":
-        case "edit":
-            fs.readFile(path, { encoding: "utf8" })
-            .then(body => main.ports.read.send({body, data, method}))
-            .catch(console.error);
-
-            break;
-        case "append":
-            fs.appendFile(path, data, { encoding: "utf8" })
-            .catch(console.error);
-            break;
-
-        case "write":
-            fs.writeFile(path, data, { encoding: "utf8" })
-            .catch(console.error);
-            break;
-        default:
-            break;
-    }
-});
-
 process.chdir(os.homedir());
-
 
 main.ports.fsRequest.subscribe(({method, args}) => {
     fs[method](...args)

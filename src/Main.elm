@@ -9,26 +9,6 @@ import Parser exposing ((|.), (|=), Parser)
 port put : String -> Cmd msg
 
 
-port fs : FSRequest -> Cmd msg
-
-
-port read : (Value -> msg) -> Sub msg
-
-
-type alias FSRequest =
-    { method : String
-    , data : Value
-    , path : String
-    }
-
-
-type alias FSResponse =
-    { method : String
-    , data : Value
-    , body : String
-    }
-
-
 type alias Model =
     Maybe (Value -> Msg)
 
