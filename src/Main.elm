@@ -3,6 +3,7 @@ port module Main exposing (main)
 import Dict exposing (update)
 import Json.Decode exposing (decodeValue, list, string)
 import Json.Encode exposing (Value)
+import Parser exposing ((|.), (|=), Parser)
 
 
 port put : String -> Cmd msg
@@ -169,3 +170,57 @@ symbolFor entry =
 
         Note ->
             " "
+
+
+
+-- Parse file
+
+
+type alias File =
+    List Line
+
+
+type alias Line =
+    ( Entry, String )
+
+
+file : Parser File
+file =
+    Parser.loop [] fileHelp
+
+
+fileHelp : File -> Parser (Parser.Step File File)
+fileHelp reverseLines =
+    Parser.oneOf
+        [ Parser.succeed (\lineTuple -> Parser.Loop (lineTuple :: reverseLines))
+            |= line
+        , Parser.succeed ()
+            |> Parser.map (\_ -> Parser.Done (List.reverse reverseLines))
+        ]
+
+
+line : Parser Line
+line =
+    Parser.succeed Tuple.pair
+        |= bullet
+        |= body
+        |. Parser.symbol "\n"
+
+
+body : Parser String
+body =
+    Parser.getChompedString <|
+        Parser.succeed ()
+            |. Parser.chompUntil "\n"
+
+
+bullet : Parser Entry
+bullet =
+    Parser.oneOf (List.map bulletFor [ Task, Event, Note ])
+        |. Parser.spaces
+
+
+bulletFor : Entry -> Parser Entry
+bulletFor entry =
+    Parser.succeed entry
+        |. Parser.symbol (symbolFor entry)
