@@ -160,29 +160,73 @@ update msg () =
     case msg of
         Read response ->
             response
-                |> decodeFSRead
-                |> parse
-                |> put
+                |> decodeValue fsResponseDecoder
+                |> Result.withDefault { method = "error", body = "Filesystem error", data = Json.Encode.null }
+                |> readAndThen
                 |> Tuple.pair ()
 
 
-decodeFSRead : Value -> String
-decodeFSRead value =
-    value
-        |> Json.Decode.decodeValue fsResponseDecoder
-        |> Result.mapError (always "Filesystem response decode error")
-        |> Result.map .body
-        |> collapseResult
+readAndThen : FSResponse -> Cmd Msg
+readAndThen response =
+    case response.method of
+        "read" ->
+            put (parse response.body)
+
+        "edit" ->
+            response.body
+                |> checkLine response.data
+                |> writeFile
+
+        _ ->
+            Cmd.none
 
 
-collapseResult : Result a a -> a
-collapseResult result =
-    case result of
-        Ok a ->
-            a
+writeFile : String -> Cmd Msg
+writeFile data =
+    fs
+        { method = "write"
+        , data = Json.Encode.string data
+        , path = path
+        }
 
-        Err e ->
-            e
+
+checkLine : Value -> String -> String
+checkLine indexValue inputBody =
+    inputBody
+        |> Parser.run file
+        |> Result.withDefault []
+        |> List.indexedMap (checkMatchingIndex (decodeMatchIndex indexValue))
+        |> List.map lineToString
+        |> String.join ""
+
+
+checkMatchingIndex : Int -> Int -> Line -> Line
+checkMatchingIndex targetIndex currentIndex ( entryType, lineBody ) =
+    if (targetIndex == currentIndex) && (entryType == Task False) then
+        ( Task True, lineBody )
+
+    else
+        ( entryType, lineBody )
+
+
+lineToString : Line -> String
+lineToString ( entryType, lineBody ) =
+    symbolFor entryType
+        ++ " "
+        ++ lineBody
+        ++ "\n"
+
+
+indexDecoder : Json.Decode.Decoder Int
+indexDecoder =
+    Json.Decode.int
+        |> Json.Decode.map ((+) -1)
+
+
+decodeMatchIndex : Value -> Int
+decodeMatchIndex =
+    decodeValue indexDecoder
+        >> Result.withDefault -1
 
 
 fsResponseDecoder : Json.Decode.Decoder FSResponse

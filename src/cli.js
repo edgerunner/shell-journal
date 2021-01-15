@@ -27,6 +27,11 @@ main.ports.fs.subscribe(function({method, path, data}) {
             fs.appendFile(path, data, { encoding: "utf8" })
             .catch(console.error);
             break;
+
+        case "write":
+            fs.writeFile(path, data, { encoding: "utf8" })
+            .catch(console.error);
+            break;
         default:
             break;
     }
