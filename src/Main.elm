@@ -95,12 +95,9 @@ mapCommand command =
             ( Just <| ViewFile, FS.read path )
 
         Just (Add entry contents) ->
-            fs
-                { path = path
-                , method = "append"
-                , data = Json.Encode.string <| appendString entry contents
-                }
-                |> Tuple.pair Nothing
+            appendString entry contents
+                |> FS.append path
+                |> Tuple.pair (Just ViewFile)
 
         Just (Check lineNumber) ->
             ( Just <| CheckTask lineNumber, FS.read path )
