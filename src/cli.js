@@ -36,3 +36,12 @@ main.ports.fs.subscribe(function({method, path, data}) {
             break;
     }
 });
+
+process.chdir(os.homedir());
+
+
+main.ports.fsRequest.subscribe(({method, args}) => {
+    fs[method](...args)
+        .then(main.ports.fsResponse.send)
+        .catch(console.error);
+});
