@@ -17,7 +17,7 @@ port read : (String -> msg) -> Sub msg
 
 type alias FSRequest =
     { method : String
-    , data : String
+    , data : Value
     , path : String
     }
 
@@ -85,14 +85,14 @@ mapCommand command =
             fs
                 { path = path
                 , method = "read"
-                , data = ""
+                , data = Json.Encode.null
                 }
 
         Just (Add entry contents) ->
             fs
                 { path = path
                 , method = "append"
-                , data = appendString entry contents
+                , data = Json.Encode.string <| appendString entry contents
                 }
 
 
