@@ -135,7 +135,46 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg () =
     case msg of
         Read data ->
-            ( (), put data )
+            ( (), put <| parse data )
+
+
+parse : String -> String
+parse data =
+    case Parser.run file data of
+        Err _ ->
+            "Error: malformed file"
+
+        Ok lines ->
+            lines
+                |> List.map colorLine
+                |> String.join "\n"
+
+
+colorLine : Line -> String
+colorLine ( entry, string ) =
+    colorCode entry
+        ++ symbolFor entry
+        ++ " "
+        ++ string
+        ++ colorEscape "0"
+
+
+colorCode : Entry -> String
+colorCode entry =
+    case entry of
+        Task ->
+            colorEscape "0"
+
+        Event ->
+            colorEscape "1;37"
+
+        Note ->
+            colorEscape "2;3"
+
+
+colorEscape : String -> String
+colorEscape inner =
+    "\u{001B}[" ++ inner ++ "m"
 
 
 subscriptions : Model -> Sub Msg
