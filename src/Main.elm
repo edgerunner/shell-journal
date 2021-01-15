@@ -102,7 +102,7 @@ decodeAdd args =
         entry =
             case List.head args of
                 Just "task" ->
-                    Just Task
+                    Just (Task False)
 
                 Just "event" ->
                     Just Event
@@ -162,14 +162,17 @@ colorLine ( entry, string ) =
 colorCode : Entry -> String
 colorCode entry =
     case entry of
-        Task ->
+        Task False ->
             colorEscape "0"
+
+        Task True ->
+            colorEscape "2"
 
         Event ->
             colorEscape "1;37"
 
         Note ->
-            colorEscape "2;3"
+            colorEscape "3;34"
 
 
 colorEscape : String -> String
@@ -188,7 +191,7 @@ type Command
 
 
 type Entry
-    = Task
+    = Task Bool
     | Event
     | Note
 
@@ -201,8 +204,11 @@ appendString entry content =
 symbolFor : Entry -> String
 symbolFor entry =
     case entry of
-        Task ->
+        Task False ->
             "·"
+
+        Task True ->
+            "╳"
 
         Event ->
             "○"
@@ -255,7 +261,7 @@ body =
 
 bullet : Parser Entry
 bullet =
-    Parser.oneOf (List.map bulletFor [ Task, Event, Note ])
+    Parser.oneOf (List.map bulletFor [ Task True, Task False, Event, Note ])
         |. Parser.spaces
 
 
