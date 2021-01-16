@@ -69,21 +69,23 @@ path =
 
 
 mapCommand : Maybe Command -> ( Model, Cmd Msg )
-mapCommand command =
-    case command of
-        Nothing ->
-            ( Nothing, Cmd.none )
+mapCommand maybeCommand =
+    maybeCommand
+        |> Maybe.map
+            (\command ->
+                case command of
+                    View ->
+                        ( Just ViewFile, FS.read path )
 
-        Just View ->
-            ( Just <| ViewFile, FS.read path )
+                    Add entry contents ->
+                        appendString entry contents
+                            |> FS.append path
+                            |> Tuple.pair Nothing
 
-        Just (Add entry contents) ->
-            appendString entry contents
-                |> FS.append path
-                |> Tuple.pair (Just ViewFile)
-
-        Just (Check lineNumber) ->
-            ( Just <| CheckTask lineNumber, FS.read path )
+                    Check lineNumber ->
+                        ( Just <| CheckTask lineNumber, FS.read path )
+            )
+        |> Maybe.withDefault ( Nothing, Cmd.none )
 
 
 decodeAdd : List String -> Maybe Command
