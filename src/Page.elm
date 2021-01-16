@@ -1,4 +1,4 @@
-module Page exposing (Line, Page, check, lineToString, parse, terminalOutput, toString)
+module Page exposing (Line, Page, add, check, lineToString, parse, terminalOutput, toString)
 
 import Entry exposing (Entry(..))
 import Parser exposing ((|.), (|=), Parser)
@@ -130,3 +130,12 @@ colorCode entry =
 colorEscape : String -> String
 colorEscape inner =
     "\u{001B}[" ++ inner ++ "m"
+
+
+
+-- Add line
+
+
+add : Entry -> String -> Page -> Page
+add entry content p =
+    List.append p [ ( entry, content ) ]

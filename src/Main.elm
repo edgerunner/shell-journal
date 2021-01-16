@@ -21,6 +21,7 @@ type alias Flags =
 
 type Msg
     = ViewFile Value
+    | AddEntry Entry String Value
     | CheckTask Int Value
 
 
@@ -61,9 +62,7 @@ mapCommand maybeCommand =
                         ( Just ViewFile, FS.read path )
 
                     Add entry contents ->
-                        Page.lineToString ( entry, contents )
-                            |> FS.append path
-                            |> Tuple.pair Nothing
+                        ( Just <| AddEntry entry contents, FS.read path )
 
                     Check lineNumber ->
                         ( Just <| CheckTask lineNumber, FS.read path )
@@ -83,6 +82,28 @@ update msg _ =
                 |> Page.terminalOutput
                 |> put
                 |> Tuple.pair Nothing
+
+        AddEntry entry content response ->
+            let
+                page =
+                    response
+                        |> decodeValue string
+                        |> Result.withDefault "Parse error"
+                        |> Page.parse
+                        |> Result.withDefault []
+                        |> Page.add entry content
+
+                writeToTerminal =
+                    page
+                        |> Page.terminalOutput
+                        |> put
+
+                writeToFile =
+                    page
+                        |> Page.toString
+                        |> FS.write path
+            in
+            ( Nothing, Cmd.batch [ writeToTerminal, writeToFile ] )
 
         CheckTask lineNumber response ->
             response
