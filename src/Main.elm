@@ -1,5 +1,6 @@
 port module Main exposing (main)
 
+import Command exposing (Command(..), Entry(..))
 import FS
 import Json.Decode exposing (decodeValue, list, string)
 import Json.Encode exposing (Value)
@@ -34,7 +35,7 @@ main =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     arguments flags
-        |> decodeCommand
+        |> Command.decode
         |> mapCommand
 
 
@@ -42,25 +43,6 @@ arguments : Flags -> List String
 arguments =
     Result.withDefault []
         << decodeValue (list string)
-
-
-decodeCommand : List String -> Maybe Command
-decodeCommand args =
-    case args of
-        [] ->
-            Just View
-
-        [ "view" ] ->
-            Just View
-
-        "add" :: rest ->
-            decodeAdd rest
-
-        "check" :: rest ->
-            decodeCheck rest
-
-        _ ->
-            Nothing
 
 
 path : String
@@ -86,49 +68,6 @@ mapCommand maybeCommand =
                         ( Just <| CheckTask lineNumber, FS.read path )
             )
         |> Maybe.withDefault ( Nothing, Cmd.none )
-
-
-decodeAdd : List String -> Maybe Command
-decodeAdd args =
-    let
-        entry =
-            case List.head args of
-                Just "task" ->
-                    Just (Task False)
-
-                Just "event" ->
-                    Just Event
-
-                Just "note" ->
-                    Just Note
-
-                _ ->
-                    Nothing
-
-        contents =
-            List.tail args
-                |> Maybe.andThen nonEmpty
-                |> Maybe.map (String.join " ")
-    in
-    Maybe.map2 Add entry contents
-
-
-decodeCheck : List String -> Maybe Command
-decodeCheck args =
-    args
-        |> List.head
-        |> Maybe.andThen String.toInt
-        |> Maybe.map Check
-
-
-nonEmpty : List a -> Maybe (List a)
-nonEmpty list =
-    case list of
-        [] ->
-            Nothing
-
-        _ ->
-            Just list
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -229,18 +168,6 @@ subscriptions model =
     model
         |> Maybe.map FS.subscription
         |> Maybe.withDefault Sub.none
-
-
-type Command
-    = View
-    | Add Entry String
-    | Check Int
-
-
-type Entry
-    = Task Bool
-    | Event
-    | Note
 
 
 appendString : Entry -> String -> String
