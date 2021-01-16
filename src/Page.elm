@@ -127,7 +127,7 @@ colorCode entry =
             colorEscape "2"
 
         Event ->
-            colorEscape "1;37"
+            colorEscape "37"
 
         Note ->
             colorEscape "3;34"
