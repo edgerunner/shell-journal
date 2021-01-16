@@ -75,10 +75,7 @@ update msg _ =
     case msg of
         ViewFile response ->
             response
-                |> decodeValue string
-                |> Result.withDefault "Parse error"
-                |> Page.parse
-                |> Result.withDefault []
+                |> decodeAndParsePage
                 |> Page.terminalOutput
                 |> put
                 |> Tuple.pair Nothing
@@ -99,10 +96,7 @@ transformAndOutputWith transform response =
     let
         page =
             response
-                |> decodeValue string
-                |> Result.withDefault "Parse error"
-                |> Page.parse
-                |> Result.withDefault []
+                |> decodeAndParsePage
                 |> transform
 
         writeToTerminal =
@@ -116,6 +110,15 @@ transformAndOutputWith transform response =
                 |> FS.write path
     in
     Cmd.batch [ writeToTerminal, writeToFile ]
+
+
+decodeAndParsePage : Value -> Page
+decodeAndParsePage response =
+    response
+        |> decodeValue string
+        |> Result.withDefault "Parse error"
+        |> Page.parse
+        |> Result.withDefault []
 
 
 subscriptions : Model -> Sub Msg
