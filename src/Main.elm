@@ -1,6 +1,7 @@
 port module Main exposing (main)
 
-import Command exposing (Command(..), Entry(..))
+import Command exposing (Command(..))
+import Entry exposing (Entry(..))
 import FS
 import Json.Decode exposing (decodeValue, list, string)
 import Json.Encode exposing (Value)

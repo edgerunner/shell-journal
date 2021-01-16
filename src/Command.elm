@@ -1,16 +1,12 @@
-module Command exposing (Command(..), Entry(..), decode)
+module Command exposing (Command(..), decode)
+
+import Entry exposing (Entry(..))
 
 
 type Command
     = View
     | Add Entry String
     | Check Int
-
-
-type Entry
-    = Task Bool
-    | Event
-    | Note
 
 
 decode : List String -> Maybe Command

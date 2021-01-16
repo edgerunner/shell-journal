@@ -1,6 +1,6 @@
 module Page exposing (Line, Page, check, lineToString, parse, terminalOutput, toString)
 
-import Command exposing (Entry(..))
+import Entry exposing (Entry(..))
 import Parser exposing ((|.), (|=), Parser)
 
 
@@ -56,23 +56,7 @@ bullet =
 bulletFor : Entry -> Parser Entry
 bulletFor entry =
     Parser.succeed entry
-        |. Parser.symbol (symbolFor entry)
-
-
-symbolFor : Entry -> String
-symbolFor entry =
-    case entry of
-        Task False ->
-            "·"
-
-        Task True ->
-            "╳"
-
-        Event ->
-            "○"
-
-        Note ->
-            " "
+        |. Parser.symbol (Entry.symbol entry)
 
 
 check : Int -> Page -> Page
@@ -96,8 +80,8 @@ toString =
 
 
 lineToString : Line -> String
-lineToString ( entryType, lineBody ) =
-    symbolFor entryType
+lineToString ( entry, lineBody ) =
+    Entry.symbol entry
         ++ " "
         ++ lineBody
         ++ "\n"
@@ -121,7 +105,7 @@ colorLine index ( entry, string ) =
         ++ colorEscape "0"
         ++ " "
         ++ colorCode entry
-        ++ symbolFor entry
+        ++ Entry.symbol entry
         ++ " "
         ++ string
         ++ colorEscape "0"
