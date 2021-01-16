@@ -5,7 +5,7 @@ import Entry exposing (Entry(..))
 import FS
 import Json.Decode exposing (decodeValue, list, string)
 import Json.Encode exposing (Value)
-import Page
+import Page exposing (Page)
 
 
 port put : String -> Cmd msg
@@ -84,48 +84,38 @@ update msg _ =
                 |> Tuple.pair Nothing
 
         AddEntry entry content response ->
-            let
-                page =
-                    response
-                        |> decodeValue string
-                        |> Result.withDefault "Parse error"
-                        |> Page.parse
-                        |> Result.withDefault []
-                        |> Page.add entry content
-
-                writeToTerminal =
-                    page
-                        |> Page.terminalOutput
-                        |> put
-
-                writeToFile =
-                    page
-                        |> Page.toString
-                        |> FS.write path
-            in
-            ( Nothing, Cmd.batch [ writeToTerminal, writeToFile ] )
+            response
+                |> transformAndOutputWith (Page.add entry content)
+                |> Tuple.pair Nothing
 
         CheckTask lineNumber response ->
-            let
-                page =
-                    response
-                        |> decodeValue string
-                        |> Result.withDefault "Parse error"
-                        |> Page.parse
-                        |> Result.withDefault []
-                        |> Page.check lineNumber
+            response
+                |> transformAndOutputWith (Page.check lineNumber)
+                |> Tuple.pair Nothing
 
-                writeToTerminal =
-                    page
-                        |> Page.terminalOutput
-                        |> put
 
-                writeToFile =
-                    page
-                        |> Page.toString
-                        |> FS.write path
-            in
-            ( Nothing, Cmd.batch [ writeToTerminal, writeToFile ] )
+transformAndOutputWith : (Page -> Page) -> Value -> Cmd Msg
+transformAndOutputWith transform response =
+    let
+        page =
+            response
+                |> decodeValue string
+                |> Result.withDefault "Parse error"
+                |> Page.parse
+                |> Result.withDefault []
+                |> transform
+
+        writeToTerminal =
+            page
+                |> Page.terminalOutput
+                |> put
+
+        writeToFile =
+            page
+                |> Page.toString
+                |> FS.write path
+    in
+    Cmd.batch [ writeToTerminal, writeToFile ]
 
 
 subscriptions : Model -> Sub Msg
