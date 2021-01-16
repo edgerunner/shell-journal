@@ -19,7 +19,7 @@ decode args =
         [] ->
             Just View
 
-        [ "view" ] ->
+        "view" :: _ ->
             Just View
 
         "add" :: rest ->
