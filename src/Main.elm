@@ -20,9 +20,7 @@ type alias Flags =
 
 
 type Msg
-    = ViewFile Value
-    | AddEntry Entry String Value
-    | CheckTask Int Value
+    = Resolve Command Value
 
 
 main : Program Flags Model Msg
@@ -55,37 +53,28 @@ path =
 mapCommand : Maybe Command -> ( Model, Cmd Msg )
 mapCommand maybeCommand =
     maybeCommand
-        |> Maybe.map
-            (\command ->
-                case command of
-                    View ->
-                        ( Just ViewFile, FS.read path )
-
-                    Add entry contents ->
-                        ( Just <| AddEntry entry contents, FS.read path )
-
-                    Check lineNumber ->
-                        ( Just <| CheckTask lineNumber, FS.read path )
-            )
+        |> Maybe.map (Resolve >> Just)
+        |> Maybe.map Tuple.pair
+        |> Maybe.map ((|>) (FS.read path))
         |> Maybe.withDefault ( Nothing, Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg _ =
-    case msg of
-        ViewFile response ->
+update (Resolve command response) _ =
+    case command of
+        View ->
             response
                 |> decodeAndParsePage
                 |> Page.terminalOutput
                 |> put
                 |> Tuple.pair Nothing
 
-        AddEntry entry content response ->
+        Add entry content ->
             response
                 |> transformAndOutputWith (Page.add entry content)
                 |> Tuple.pair Nothing
 
-        CheckTask lineNumber response ->
+        Check lineNumber ->
             response
                 |> transformAndOutputWith (Page.check lineNumber)
                 |> Tuple.pair Nothing
