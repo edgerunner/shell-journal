@@ -106,15 +106,26 @@ update msg _ =
             ( Nothing, Cmd.batch [ writeToTerminal, writeToFile ] )
 
         CheckTask lineNumber response ->
-            response
-                |> decodeValue string
-                |> Result.withDefault "Parse error"
-                |> Page.parse
-                |> Result.withDefault []
-                |> Page.check lineNumber
-                |> Page.toString
-                |> FS.write path
-                |> Tuple.pair Nothing
+            let
+                page =
+                    response
+                        |> decodeValue string
+                        |> Result.withDefault "Parse error"
+                        |> Page.parse
+                        |> Result.withDefault []
+                        |> Page.check lineNumber
+
+                writeToTerminal =
+                    page
+                        |> Page.terminalOutput
+                        |> put
+
+                writeToFile =
+                    page
+                        |> Page.toString
+                        |> FS.write path
+            in
+            ( Nothing, Cmd.batch [ writeToTerminal, writeToFile ] )
 
 
 subscriptions : Model -> Sub Msg
