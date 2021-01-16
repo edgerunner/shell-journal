@@ -47,6 +47,9 @@ arguments =
 decodeCommand : List String -> Maybe Command
 decodeCommand args =
     case args of
+        [] ->
+            Just View
+
         [ "view" ] ->
             Just View
 
