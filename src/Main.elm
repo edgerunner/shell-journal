@@ -36,7 +36,10 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     arguments flags
         |> Command.decode
-        |> mapCommand
+        |> Maybe.map (Resolve >> Just)
+        |> Maybe.map Tuple.pair
+        |> Maybe.map ((|>) (FS.read path))
+        |> Maybe.withDefault ( Nothing, Cmd.none )
 
 
 arguments : Flags -> List String
@@ -48,15 +51,6 @@ arguments =
 path : String
 path =
     ".shjo/today.shjo"
-
-
-mapCommand : Maybe Command -> ( Model, Cmd Msg )
-mapCommand maybeCommand =
-    maybeCommand
-        |> Maybe.map (Resolve >> Just)
-        |> Maybe.map Tuple.pair
-        |> Maybe.map ((|>) (FS.read path))
-        |> Maybe.withDefault ( Nothing, Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
