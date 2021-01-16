@@ -60,30 +60,31 @@ update (Resolve command response) _ =
         View ->
             response
                 |> decodeAndParsePage
-                |> Page.terminalOutput
+                |> Page.terminalOutput 0
                 |> put
 
         Add entry content ->
             response
-                |> transformAndOutputWith (Page.add entry content)
+                |> decodeAndParsePage
+                |> Page.add entry content
+                |> (\page ->
+                        saveAndOutput (List.length page) page
+                   )
 
         Check lineNumber ->
             response
-                |> transformAndOutputWith (Page.check lineNumber)
+                |> decodeAndParsePage
+                |> Page.check lineNumber
+                |> saveAndOutput lineNumber
     )
 
 
-transformAndOutputWith : (Page -> Page) -> Value -> Cmd Msg
-transformAndOutputWith transform response =
+saveAndOutput : Int -> Page -> Cmd Msg
+saveAndOutput highlight page =
     let
-        page =
-            response
-                |> decodeAndParsePage
-                |> transform
-
         writeToTerminal =
             page
-                |> Page.terminalOutput
+                |> Page.terminalOutput highlight
                 |> put
 
         writeToFile =

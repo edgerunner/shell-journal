@@ -91,16 +91,22 @@ lineToString ( entry, lineBody ) =
 -- Color output
 
 
-terminalOutput : Page -> String
-terminalOutput lines =
+terminalOutput : Int -> Page -> String
+terminalOutput highlight lines =
     lines
-        |> List.indexedMap colorLine
+        |> List.indexedMap (colorLine highlight)
         |> String.join "\n"
 
 
-colorLine : Int -> Line -> String
-colorLine index ( entry, string ) =
-    colorEscape "30"
+colorLine : Int -> Int -> Line -> String
+colorLine highlight index ( entry, string ) =
+    colorEscape
+        (if highlight == index + 1 then
+            "93"
+
+         else
+            "30"
+        )
         ++ (String.padLeft 3 ' ' <| String.fromInt (index + 1))
         ++ colorEscape "0"
         ++ " "
