@@ -55,23 +55,22 @@ path =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update (Resolve command response) _ =
-    case command of
+    ( Nothing
+    , case command of
         View ->
             response
                 |> decodeAndParsePage
                 |> Page.terminalOutput
                 |> put
-                |> Tuple.pair Nothing
 
         Add entry content ->
             response
                 |> transformAndOutputWith (Page.add entry content)
-                |> Tuple.pair Nothing
 
         Check lineNumber ->
             response
                 |> transformAndOutputWith (Page.check lineNumber)
-                |> Tuple.pair Nothing
+    )
 
 
 transformAndOutputWith : (Page -> Page) -> Value -> Cmd Msg
