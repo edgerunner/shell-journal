@@ -7,25 +7,27 @@ type Command
     = View
     | Add Entry String
     | Check Int
+    | WeirdCommand
 
 
-decode : List String -> Maybe Command
+decode : List String -> Command
 decode args =
-    case args of
-        [] ->
-            Just View
+    Maybe.withDefault WeirdCommand <|
+        case args of
+            [] ->
+                Just View
 
-        "view" :: _ ->
-            Just View
+            "view" :: _ ->
+                Just View
 
-        "add" :: rest ->
-            decodeAdd rest
+            "add" :: rest ->
+                decodeAdd rest
 
-        "check" :: rest ->
-            decodeCheck rest
+            "check" :: rest ->
+                decodeCheck rest
 
-        _ ->
-            Nothing
+            _ ->
+                Nothing
 
 
 decodeAdd : List String -> Maybe Command
