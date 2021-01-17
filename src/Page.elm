@@ -100,42 +100,55 @@ terminalOutput highlight lines =
 
 colorLine : Int -> Int -> Line -> String
 colorLine highlight index ( entry, string ) =
-    colorEscape
+    styleEscape
         (if highlight == index + 1 then
-            "93"
+            [ style.brightYellow ]
 
          else
-            "30"
+            [ style.black ]
         )
         ++ (String.padLeft 3 ' ' <| String.fromInt (index + 1))
-        ++ colorEscape "0"
+        ++ styleEscape [ style.default ]
         ++ " "
         ++ colorCode entry
         ++ Entry.symbol entry
         ++ " "
         ++ string
-        ++ colorEscape "0"
+        ++ styleEscape [ style.default ]
 
 
 colorCode : Entry -> String
 colorCode entry =
     case entry of
         Task False ->
-            colorEscape "0"
+            styleEscape [ style.default ]
 
         Task True ->
-            colorEscape "2"
+            styleEscape [ style.dim ]
 
         Event ->
-            colorEscape "37"
+            styleEscape [ style.white ]
 
         Note ->
-            colorEscape "3;34"
+            styleEscape [ style.italic, style.blue ]
 
 
-colorEscape : String -> String
-colorEscape inner =
-    "\u{001B}[" ++ inner ++ "m"
+style : { default : String, bold : String, dim : String, italic : String, white : String, blue : String, black : String, brightYellow : String }
+style =
+    { default = "0"
+    , bold = "1"
+    , dim = "2"
+    , italic = "3"
+    , white = "37"
+    , blue = "34"
+    , black = "30"
+    , brightYellow = "93"
+    }
+
+
+styleEscape : List String -> String
+styleEscape inner =
+    "\u{001B}[" ++ String.join ";" inner ++ "m"
 
 
 
