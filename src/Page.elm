@@ -11,6 +11,7 @@ type alias Page =
 type alias Line =
     { bullet : Entry
     , body : String
+    , star : Bool
     , highlight : Bool
     }
 
@@ -40,21 +41,37 @@ line =
     Parser.succeed Line
         |= bullet
         |= body
+        |= star
         |. Parser.symbol "\n"
         |= Parser.succeed False
 
 
 body : Parser String
 body =
-    Parser.getChompedString <|
-        Parser.succeed ()
-            |. Parser.chompUntil "\n"
+    Parser.succeed ()
+        |. Parser.chompWhile (\c -> (c /= '\n') && (c /= '★'))
+        |> Parser.getChompedString
+        |> Parser.map String.trim
 
 
 bullet : Parser Entry
 bullet =
     Parser.oneOf (List.map bulletFor [ Task True, Task False, Event, Note ])
         |. Parser.spaces
+
+
+star : Parser Bool
+star =
+    Parser.oneOf
+        [ Parser.succeed True
+            |. Parser.symbol starSymbol
+        , Parser.succeed False
+        ]
+
+
+starSymbol : String
+starSymbol =
+    "★"
 
 
 bulletFor : Entry -> Parser Entry
@@ -91,7 +108,18 @@ lineToString thisLine =
     Entry.symbol thisLine.bullet
         ++ " "
         ++ thisLine.body
+        ++ optionalString (" " ++ starSymbol) thisLine.star
         ++ "\n"
+
+
+optionalString : String -> Bool -> String
+optionalString string condition =
+    if condition then
+        string
+
+    else
+        ""
+
 
 
 -- Color output
@@ -115,11 +143,18 @@ colorLine index thisLine =
         )
         ++ (String.padLeft 3 ' ' <| String.fromInt (index + 1))
         ++ styleEscape [ style.default ]
+        ++ (if thisLine.star then
+                styleEscape [ style.bold ]
+
+            else
+                ""
+           )
         ++ " "
         ++ colorCode thisLine.bullet
         ++ Entry.symbol thisLine.bullet
         ++ " "
         ++ thisLine.body
+        ++ optionalString yellowStar thisLine.star
         ++ styleEscape [ style.default ]
 
 
@@ -137,6 +172,14 @@ colorCode entry =
 
         Note ->
             styleEscape [ style.italic, style.blue ]
+
+
+yellowStar : String
+yellowStar =
+    " "
+        ++ styleEscape [ style.brightYellow ]
+        ++ starSymbol
+        ++ styleEscape [ style.default ]
 
 
 style : { default : String, bold : String, dim : String, italic : String, white : String, blue : String, black : String, brightYellow : String }
@@ -166,6 +209,7 @@ add entry content p =
     List.append p
         [ { bullet = entry
           , body = content
+          , star = False
           , highlight = True
           }
         ]
