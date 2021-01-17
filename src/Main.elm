@@ -11,8 +11,10 @@ import Page exposing (Page)
 port put : String -> Cmd msg
 
 
-type alias Model =
-    Maybe (Value -> Msg)
+type Model
+    = GetPage Command
+    | PutPage Command Page
+    | SavePage Command Page
 
 
 type alias Flags =
@@ -20,7 +22,8 @@ type alias Flags =
 
 
 type Msg
-    = Resolve Command Value
+    = GotPage Value
+    | SavedPage
 
 
 main : Program Flags Model Msg
@@ -36,10 +39,25 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     arguments flags
         |> Command.decode
-        |> Maybe.map (Resolve >> Just)
-        |> Maybe.map Tuple.pair
-        |> Maybe.map ((|>) (FS.read path))
-        |> Maybe.withDefault ( Nothing, Cmd.none )
+        |> GetPage
+        |> attachCmd
+
+
+attachCmd : Model -> ( Model, Cmd Msg )
+attachCmd model =
+    Tuple.pair model <|
+        case model of
+            GetPage WeirdCommand ->
+                put "Error: this command does not make sense to me"
+
+            GetPage _ ->
+                FS.read path
+
+            PutPage _ page ->
+                put <| Page.terminalOutput page
+
+            SavePage _ page ->
+                FS.write path <| Page.toString page
 
 
 arguments : Flags -> List String
@@ -54,45 +72,35 @@ path =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update (Resolve command response) _ =
-    ( Nothing
-    , case command of
-        View ->
+update msg model =
+    case ( model, msg ) of
+        ( GetPage View, GotPage response ) ->
             response
                 |> decodeAndParsePage
-                |> Page.terminalOutput 0
-                |> put
+                |> PutPage View
+                |> attachCmd
 
-        Add entry content ->
+        ( GetPage (Add entry content), GotPage response ) ->
             response
                 |> decodeAndParsePage
                 |> Page.add entry content
-                |> (\page ->
-                        saveAndOutput (List.length page) page
-                   )
+                |> SavePage (Add entry content)
+                |> attachCmd
 
-        Check lineNumber ->
+        ( GetPage (Check lineNumber), GotPage response ) ->
             response
                 |> decodeAndParsePage
                 |> Page.check lineNumber
-                |> saveAndOutput lineNumber
-    )
+                |> SavePage (Check lineNumber)
+                |> attachCmd
 
-
-saveAndOutput : Int -> Page -> Cmd Msg
-saveAndOutput highlight page =
-    let
-        writeToTerminal =
+        ( SavePage command page, SavedPage ) ->
             page
-                |> Page.terminalOutput highlight
-                |> put
+                |> PutPage command
+                |> attachCmd
 
-        writeToFile =
-            page
-                |> Page.toString
-                |> FS.write path
-    in
-    Cmd.batch [ writeToTerminal, writeToFile ]
+        _ ->
+            ( model, put "Error: invalid transition" )
 
 
 decodeAndParsePage : Value -> Page
@@ -106,6 +114,12 @@ decodeAndParsePage response =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    model
-        |> Maybe.map FS.subscription
-        |> Maybe.withDefault Sub.none
+    case model of
+        GetPage _ ->
+            FS.subscription GotPage
+
+        SavePage _ _ ->
+            FS.subscription (always SavedPage)
+
+        PutPage _ _ ->
+            Sub.none

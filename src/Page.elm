@@ -9,7 +9,10 @@ type alias Page =
 
 
 type alias Line =
-    ( Entry, String )
+    { bullet : Entry
+    , body : String
+    , highlight : Bool
+    }
 
 
 parse : String -> Result (List Parser.DeadEnd) Page
@@ -34,10 +37,11 @@ pageHelp reverseLines =
 
 line : Parser Line
 line =
-    Parser.succeed Tuple.pair
+    Parser.succeed Line
         |= bullet
         |= body
         |. Parser.symbol "\n"
+        |= Parser.succeed False
 
 
 body : Parser String
@@ -65,12 +69,15 @@ check lineNumber =
 
 
 checkMatchingIndex : Int -> Int -> Line -> Line
-checkMatchingIndex lineNumberToCheck currentIndex ( entryType, lineBody ) =
-    if ((lineNumberToCheck - 1) == currentIndex) && (entryType == Task False) then
-        ( Task True, lineBody )
+checkMatchingIndex lineNumberToCheck currentIndex thisLine =
+    if ((lineNumberToCheck - 1) == currentIndex) && (thisLine.bullet == Task False) then
+        { thisLine
+            | bullet = Task True
+            , highlight = True
+        }
 
     else
-        ( entryType, lineBody )
+        thisLine
 
 
 toString : Page -> String
@@ -80,28 +87,27 @@ toString =
 
 
 lineToString : Line -> String
-lineToString ( entry, lineBody ) =
-    Entry.symbol entry
+lineToString thisLine =
+    Entry.symbol thisLine.bullet
         ++ " "
-        ++ lineBody
+        ++ thisLine.body
         ++ "\n"
-
 
 
 -- Color output
 
 
-terminalOutput : Int -> Page -> String
-terminalOutput highlight lines =
+terminalOutput : Page -> String
+terminalOutput lines =
     lines
-        |> List.indexedMap (colorLine highlight)
+        |> List.indexedMap colorLine
         |> String.join "\n"
 
 
-colorLine : Int -> Int -> Line -> String
-colorLine highlight index ( entry, string ) =
+colorLine : Int -> Line -> String
+colorLine index thisLine =
     styleEscape
-        (if highlight == index + 1 then
+        (if thisLine.highlight then
             [ style.brightYellow ]
 
          else
@@ -110,10 +116,10 @@ colorLine highlight index ( entry, string ) =
         ++ (String.padLeft 3 ' ' <| String.fromInt (index + 1))
         ++ styleEscape [ style.default ]
         ++ " "
-        ++ colorCode entry
-        ++ Entry.symbol entry
+        ++ colorCode thisLine.bullet
+        ++ Entry.symbol thisLine.bullet
         ++ " "
-        ++ string
+        ++ thisLine.body
         ++ styleEscape [ style.default ]
 
 
@@ -157,4 +163,9 @@ styleEscape inner =
 
 add : Entry -> String -> Page -> Page
 add entry content p =
-    List.append p [ ( entry, content ) ]
+    List.append p
+        [ { bullet = entry
+          , body = content
+          , highlight = True
+          }
+        ]
