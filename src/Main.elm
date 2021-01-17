@@ -54,7 +54,7 @@ attachCmd model =
                 FS.read path
 
             PutPage _ page ->
-                put <| Page.terminalOutput 0 page
+                put <| Page.terminalOutput page
 
             SavePage _ page ->
                 FS.write path <| Page.toString page
