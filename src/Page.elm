@@ -81,37 +81,39 @@ bulletFor entry =
 
 
 check : Int -> Page -> Page
-check lineNumber =
-    List.indexedMap (checkMatchingIndex lineNumber)
-
-
-checkMatchingIndex : Int -> Int -> Line -> Line
-checkMatchingIndex lineNumberToCheck currentIndex thisLine =
-    if ((lineNumberToCheck - 1) == currentIndex) && (thisLine.bullet == Task False) then
-        { thisLine
-            | bullet = Task True
-            , highlight = True
-        }
-
-    else
-        thisLine
+check =
+    only (.bullet >> (==) (Task False))
+        >> Maybe.map (\l -> { l | bullet = Task True })
+        |> modifyByLineNumber
 
 
 star : Int -> Page -> Page
-star lineNumber =
-    List.indexedMap (starMatchingIndex lineNumber)
+star =
+    only (not << .star)
+        >> Maybe.map (\l -> { l | star = True })
+        |> modifyByLineNumber
 
 
-starMatchingIndex : Int -> Int -> Line -> Line
-starMatchingIndex lineNumberToCheck currentIndex thisLine =
-    if ((lineNumberToCheck - 1) == currentIndex) && (thisLine.star == False) then
-        { thisLine
-            | star = True
-            , highlight = True
-        }
+modifyByLineNumber : (Line -> Maybe Line) -> Int -> Page -> Page
+modifyByLineNumber modify lineNumber =
+    List.indexedMap
+        (\index thisLine ->
+            if (lineNumber - 1) == index then
+                modify { thisLine | highlight = True }
+                    |> Maybe.withDefault thisLine
+
+            else
+                thisLine
+        )
+
+
+only : (a -> Bool) -> a -> Maybe a
+only predicate value =
+    if predicate value then
+        Just value
 
     else
-        thisLine
+        Nothing
 
 
 toString : Page -> String
