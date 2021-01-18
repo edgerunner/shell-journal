@@ -29,10 +29,10 @@ page =
 pageHelp : Page -> Parser (Parser.Step Page Page)
 pageHelp reverseLines =
     Parser.oneOf
-        [ Parser.succeed (\lineTuple -> Parser.Loop (lineTuple :: reverseLines))
+        [ Parser.succeed ((::) >> (|>) reverseLines >> Parser.Loop)
             |= line
         , Parser.succeed ()
-            |> Parser.map (\_ -> Parser.Done (List.reverse reverseLines))
+            |> Parser.map (always <| Parser.Done (List.reverse reverseLines))
         ]
 
 
