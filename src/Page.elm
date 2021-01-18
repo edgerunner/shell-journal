@@ -159,7 +159,7 @@ colorLine index thisLine =
             [ style.black ]
         )
         ++ (String.padLeft 3 ' ' <| String.fromInt (index + 1))
-        ++ styleEscape [ style.default ]
+        ++ styleEscape [ style.reset ]
         ++ (if thisLine.star then
                 styleEscape [ style.bold ]
 
@@ -172,7 +172,7 @@ colorLine index thisLine =
         ++ " "
         ++ thisLine.body
         ++ optionalString yellowStar thisLine.star
-        ++ styleEscape [ style.default ]
+        ++ styleEscape [ style.reset ]
 
 
 colorCode : Entry -> String
@@ -196,15 +196,16 @@ yellowStar =
     " "
         ++ styleEscape [ style.brightYellow ]
         ++ starSymbol
-        ++ styleEscape [ style.default ]
+        ++ styleEscape [ style.reset ]
 
 
-style : { default : String, bold : String, dim : String, italic : String, white : String, blue : String, black : String, brightYellow : String }
+style : { reset : String, bold : String, dim : String, italic : String, default : String, white : String, blue : String, black : String, brightYellow : String }
 style =
-    { default = "0"
+    { reset = "0"
     , bold = "1"
     , dim = "2"
     , italic = "3"
+    , default = "39"
     , white = "37"
     , blue = "34"
     , black = "30"
