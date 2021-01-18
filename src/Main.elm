@@ -94,6 +94,13 @@ update msg model =
                 |> SavePage (Check lineNumber)
                 |> attachCmd
 
+        ( GetPage (Star lineNumber), GotPage response ) ->
+            response
+                |> decodeAndParsePage
+                |> Page.star lineNumber
+                |> SavePage (Star lineNumber)
+                |> attachCmd
+
         ( SavePage command page, SavedPage ) ->
             page
                 |> PutPage command

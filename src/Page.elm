@@ -1,4 +1,4 @@
-module Page exposing (Line, Page, add, check, lineToString, parse, terminalOutput, toString)
+module Page exposing (Line, Page, add, check, lineToString, parse, star, terminalOutput, toString)
 
 import Entry exposing (Entry(..))
 import Parser exposing ((|.), (|=), Parser)
@@ -41,7 +41,7 @@ line =
     Parser.succeed Line
         |= bullet
         |= body
-        |= star
+        |= starParser
         |. Parser.symbol "\n"
         |= Parser.succeed False
 
@@ -60,8 +60,8 @@ bullet =
         |. Parser.spaces
 
 
-star : Parser Bool
-star =
+starParser : Parser Bool
+starParser =
     Parser.oneOf
         [ Parser.succeed True
             |. Parser.symbol starSymbol
@@ -90,6 +90,23 @@ checkMatchingIndex lineNumberToCheck currentIndex thisLine =
     if ((lineNumberToCheck - 1) == currentIndex) && (thisLine.bullet == Task False) then
         { thisLine
             | bullet = Task True
+            , highlight = True
+        }
+
+    else
+        thisLine
+
+
+star : Int -> Page -> Page
+star lineNumber =
+    List.indexedMap (starMatchingIndex lineNumber)
+
+
+starMatchingIndex : Int -> Int -> Line -> Line
+starMatchingIndex lineNumberToCheck currentIndex thisLine =
+    if ((lineNumberToCheck - 1) == currentIndex) && (thisLine.star == False) then
+        { thisLine
+            | star = True
             , highlight = True
         }
 

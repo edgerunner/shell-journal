@@ -7,6 +7,7 @@ type Command
     = View
     | Add Entry String
     | Check Int
+    | Star Int
     | WeirdCommand
 
 
@@ -25,6 +26,9 @@ decode args =
 
             "check" :: rest ->
                 decodeCheck rest
+
+            "star" :: rest ->
+                decodeStar rest
 
             _ ->
                 Nothing
@@ -61,6 +65,14 @@ decodeCheck args =
         |> List.head
         |> Maybe.andThen String.toInt
         |> Maybe.map Check
+
+
+decodeStar : List String -> Maybe Command
+decodeStar args =
+    args
+        |> List.head
+        |> Maybe.andThen String.toInt
+        |> Maybe.map Star
 
 
 nonEmpty : List a -> Maybe (List a)
