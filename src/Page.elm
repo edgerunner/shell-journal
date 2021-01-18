@@ -13,6 +13,7 @@ type alias Line =
     , body : String
     , star : Bool
     , highlight : Bool
+    , lineNumber : Int
     }
 
 
@@ -30,20 +31,20 @@ pageHelp : Page -> Parser (Parser.Step Page Page)
 pageHelp reverseLines =
     Parser.oneOf
         [ Parser.succeed ((::) >> (|>) reverseLines >> Parser.Loop)
-            |= line
-        , Parser.succeed ()
-            |> Parser.map (always <| Parser.Done (List.reverse reverseLines))
+            |= line (List.length reverseLines + 1)
+        , Parser.succeed <| Parser.Done (List.reverse reverseLines)
         ]
 
 
-line : Parser Line
-line =
+line : Int -> Parser Line
+line lineNumber =
     Parser.succeed Line
         |= bullet
         |= body
         |= starParser
         |. Parser.symbol "\n"
         |= Parser.succeed False
+        |= Parser.succeed lineNumber
 
 
 body : Parser String
@@ -96,9 +97,9 @@ star =
 
 modifyByLineNumber : (Line -> Maybe Line) -> Int -> Page -> Page
 modifyByLineNumber modify lineNumber =
-    List.indexedMap
-        (\index thisLine ->
-            if (lineNumber - 1) == index then
+    List.map
+        (\thisLine ->
+            if lineNumber == thisLine.lineNumber then
                 modify { thisLine | highlight = True }
                     |> Maybe.withDefault thisLine
 
@@ -147,12 +148,12 @@ optionalString string condition =
 terminalOutput : Page -> String
 terminalOutput lines =
     lines
-        |> List.indexedMap colorLine
+        |> List.map colorLine
         |> String.join "\n"
 
 
-colorLine : Int -> Line -> String
-colorLine index thisLine =
+colorLine : Line -> String
+colorLine thisLine =
     styleEscape
         (if thisLine.highlight then
             [ style.brightYellow ]
@@ -160,7 +161,7 @@ colorLine index thisLine =
          else
             [ style.black ]
         )
-        ++ (String.padLeft 3 ' ' <| String.fromInt (index + 1))
+        ++ (String.padLeft 3 ' ' <| String.fromInt thisLine.lineNumber)
         ++ styleEscape [ style.reset ]
         ++ (if thisLine.star then
                 styleEscape [ style.bold ]
@@ -231,5 +232,6 @@ add entry content p =
           , body = content
           , star = False
           , highlight = True
+          , lineNumber = List.length p + 1
           }
         ]
