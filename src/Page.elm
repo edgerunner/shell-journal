@@ -39,7 +39,7 @@ pageHelp reverseLines =
 line : Int -> Parser Line
 line lineNumber =
     Parser.succeed Line
-        |= bullet
+        |= Bullet.parser
         |= body
         |= starParser
         |. Parser.symbol "\n"
@@ -55,12 +55,6 @@ body =
         |> Parser.map String.trim
 
 
-bullet : Parser Bullet
-bullet =
-    Parser.oneOf (List.map bulletFor [ Task True, Task False, Event, Note ])
-        |. Parser.spaces
-
-
 starParser : Parser Bool
 starParser =
     Parser.oneOf
@@ -73,12 +67,6 @@ starParser =
 starSymbol : String
 starSymbol =
     "★"
-
-
-bulletFor : Bullet -> Parser Bullet
-bulletFor thisBullet =
-    Parser.succeed thisBullet
-        |. Parser.symbol (Bullet.symbol thisBullet)
 
 
 check : Int -> Page -> Page
@@ -179,8 +167,8 @@ colorLine thisLine =
 
 
 colorCode : Bullet -> String
-colorCode bullet_ =
-    case bullet_ of
+colorCode bullet =
+    case bullet of
         Task False ->
             styleEscape [ style.default ]
 
@@ -226,9 +214,9 @@ styleEscape inner =
 
 
 add : Bullet -> String -> Page -> Page
-add bullet_ content p =
+add bullet content p =
     List.append p
-        [ { bullet = bullet_
+        [ { bullet = bullet
           , body = content
           , star = False
           , highlight = True
