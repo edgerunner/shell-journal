@@ -13,66 +13,59 @@ type Command
 
 decode : List String -> Command
 decode args =
-    Maybe.withDefault WeirdCommand <|
-        case args of
-            [] ->
-                Just View
+    case args of
+        [] ->
+            View
 
-            "view" :: _ ->
-                Just View
+        "view" :: _ ->
+            View
 
-            "add" :: rest ->
-                decodeAdd rest
+        "add" :: bullet :: rest ->
+            decodeAdd bullet rest
 
-            "check" :: rest ->
-                decodeCheck rest
+        "check" :: rest ->
+            decodeByLineNumber Check rest
 
-            "star" :: rest ->
-                decodeStar rest
+        "star" :: rest ->
+            decodeByLineNumber Star rest
 
-            _ ->
-                Nothing
+        bullet :: rest ->
+            decodeAdd bullet rest
 
 
-decodeAdd : List String -> Maybe Command
-decodeAdd args =
+decodeAdd : String -> List String -> Command
+decodeAdd bulletCommand args =
     let
         bullet =
-            case List.head args of
-                Just "task" ->
+            case bulletCommand of
+                "task" ->
                     Just (Task False)
 
-                Just "event" ->
+                "event" ->
                     Just Event
 
-                Just "note" ->
+                "note" ->
                     Just Note
 
                 _ ->
                     Nothing
 
         contents =
-            List.tail args
-                |> Maybe.andThen nonEmpty
+            args
+                |> nonEmpty
                 |> Maybe.map (String.join " ")
     in
     Maybe.map2 Add bullet contents
+        |> Maybe.withDefault WeirdCommand
 
 
-decodeCheck : List String -> Maybe Command
-decodeCheck args =
+decodeByLineNumber : (Int -> Command) -> List String -> Command
+decodeByLineNumber command args =
     args
         |> List.head
         |> Maybe.andThen String.toInt
-        |> Maybe.map Check
-
-
-decodeStar : List String -> Maybe Command
-decodeStar args =
-    args
-        |> List.head
-        |> Maybe.andThen String.toInt
-        |> Maybe.map Star
+        |> Maybe.map command
+        |> Maybe.withDefault WeirdCommand
 
 
 nonEmpty : List a -> Maybe (List a)
