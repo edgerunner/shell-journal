@@ -1,6 +1,7 @@
-module Command exposing (Command(..), decode)
+module Command exposing (Command(..), parse)
 
 import Bullet exposing (Bullet(..))
+import Parser as P exposing ((|.), (|=), Parser)
 
 
 type Command
@@ -11,68 +12,40 @@ type Command
     | WeirdCommand
 
 
-decode : List String -> Command
-decode args =
-    case args of
-        [] ->
-            View
-
-        "view" :: _ ->
-            View
-
-        "add" :: bullet :: rest ->
-            decodeAdd bullet rest
-
-        "check" :: rest ->
-            decodeByLineNumber Check rest
-
-        "star" :: rest ->
-            decodeByLineNumber Star rest
-
-        bullet :: rest ->
-            decodeAdd bullet rest
+parse : String -> Command
+parse =
+    P.run commandParser
+        >> Result.withDefault WeirdCommand
 
 
-decodeAdd : String -> List String -> Command
-decodeAdd bulletCommand args =
-    let
-        bullet =
-            case bulletCommand of
-                "task" ->
-                    Just (Task False)
-
-                "event" ->
-                    Just Event
-
-                "note" ->
-                    Just Note
-
-                _ ->
-                    Nothing
-
-        contents =
-            args
-                |> nonEmpty
-                |> Maybe.map (String.join " ")
-    in
-    Maybe.map2 Add bullet contents
-        |> Maybe.withDefault WeirdCommand
+commandParser : Parser Command
+commandParser =
+    P.oneOf
+        [ P.succeed Add
+            |. P.oneOf [ P.keyword "add", P.succeed () ]
+            |. P.spaces
+            |= bulletParser
+            |. P.spaces
+            |= P.getChompedString (P.chompWhile (always True))
+        , P.succeed Check
+            |. P.keyword "check"
+            |. P.spaces
+            |= P.int
+        , P.succeed Star
+            |. P.keyword "star"
+            |. P.spaces
+            |= P.int
+        , P.succeed View
+            |. P.keyword "view"
+        , P.succeed View
+            |. P.end
+        ]
 
 
-decodeByLineNumber : (Int -> Command) -> List String -> Command
-decodeByLineNumber command args =
-    args
-        |> List.head
-        |> Maybe.andThen String.toInt
-        |> Maybe.map command
-        |> Maybe.withDefault WeirdCommand
-
-
-nonEmpty : List a -> Maybe (List a)
-nonEmpty list =
-    case list of
-        [] ->
-            Nothing
-
-        _ ->
-            Just list
+bulletParser : Parser Bullet
+bulletParser =
+    P.oneOf
+        [ P.succeed (Task False) |. P.keyword "task"
+        , P.succeed Event |. P.keyword "event"
+        , P.succeed Note |. P.keyword "note"
+        ]

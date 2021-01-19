@@ -38,7 +38,7 @@ main =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     arguments flags
-        |> Command.decode
+        |> Command.parse
         |> GetPage
         |> attachCmd
 
@@ -66,10 +66,11 @@ attachCmd model =
                 FS.write path <| Page.toString page
 
 
-arguments : Flags -> List String
+arguments : Flags -> String
 arguments =
-    Result.withDefault []
-        << decodeValue (list string)
+    decodeValue (list string)
+        >> Result.withDefault []
+        >> String.join " "
 
 
 path : String
