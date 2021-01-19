@@ -53,8 +53,14 @@ attachCmd model =
             GetPage _ ->
                 FS.read path
 
-            PutPage _ page ->
+            PutPage View page ->
                 put <| Page.terminalOutput page
+
+            PutPage _ page ->
+                page
+                    |> Page.clip 2
+                    |> Page.terminalOutput
+                    |> put
 
             SavePage _ page ->
                 FS.write path <| Page.toString page

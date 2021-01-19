@@ -1,4 +1,4 @@
-module Page exposing (Line, Page, add, check, lineToString, parse, star, terminalOutput, toString)
+module Page exposing (Line, Page, add, check, clip, lineToString, parse, star, terminalOutput, toString)
 
 import Entry exposing (Entry(..))
 import Parser exposing ((|.), (|=), Parser)
@@ -235,3 +235,37 @@ add entry content p =
           , lineNumber = List.length p + 1
           }
         ]
+
+
+clip : Int -> Page -> Page
+clip =
+    clipHelp []
+
+
+clipHelp : Page -> Int -> Page -> Page
+clipHelp clippings range lines =
+    case lines of
+        [] ->
+            clippings
+                |> List.take (range * 2)
+                |> List.reverse
+
+        first :: rest ->
+            if first.highlight then
+                ( clippings, rest )
+                    |> Tuple.mapFirst
+                        (List.take range >> List.reverse)
+                    |> Tuple.mapSecond
+                        (List.take range >> (::) first)
+                    |> combineWith (++)
+
+            else
+                clipHelp
+                    (first :: clippings)
+                    range
+                    rest
+
+
+combineWith : (a -> b -> c) -> ( a, b ) -> c
+combineWith fn ( a, b ) =
+    fn a b
