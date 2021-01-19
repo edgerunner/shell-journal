@@ -1,15 +1,15 @@
-module Entry exposing (Entry(..), symbol)
+module Bullet exposing (Bullet(..), symbol)
 
 
-type Entry
+type Bullet
     = Task Bool
     | Event
     | Note
 
 
-symbol : Entry -> String
-symbol entry =
-    case entry of
+symbol : Bullet -> String
+symbol bullet =
+    case bullet of
         Task False ->
             "·"
 

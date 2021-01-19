@@ -1,7 +1,7 @@
 port module Main exposing (main)
 
+import Bullet exposing (Bullet(..))
 import Command exposing (Command(..))
-import Entry exposing (Entry(..))
 import FS
 import Json.Decode exposing (decodeValue, list, string)
 import Json.Encode exposing (Value)
@@ -86,11 +86,11 @@ update msg model =
                 |> PutPage View
                 |> attachCmd
 
-        ( GetPage (Add entry content), GotPage response ) ->
+        ( GetPage (Add bullet content), GotPage response ) ->
             response
                 |> decodeAndParsePage
-                |> Page.add entry content
-                |> SavePage (Add entry content)
+                |> Page.add bullet content
+                |> SavePage (Add bullet content)
                 |> attachCmd
 
         ( GetPage (Check lineNumber), GotPage response ) ->

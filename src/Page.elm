@@ -1,6 +1,6 @@
 module Page exposing (Line, Page, add, check, clip, lineToString, parse, star, terminalOutput, toString)
 
-import Entry exposing (Entry(..))
+import Bullet exposing (Bullet(..))
 import Parser exposing ((|.), (|=), Parser)
 
 
@@ -9,7 +9,7 @@ type alias Page =
 
 
 type alias Line =
-    { bullet : Entry
+    { bullet : Bullet
     , body : String
     , star : Bool
     , highlight : Bool
@@ -55,7 +55,7 @@ body =
         |> Parser.map String.trim
 
 
-bullet : Parser Entry
+bullet : Parser Bullet
 bullet =
     Parser.oneOf (List.map bulletFor [ Task True, Task False, Event, Note ])
         |. Parser.spaces
@@ -75,10 +75,10 @@ starSymbol =
     "★"
 
 
-bulletFor : Entry -> Parser Entry
-bulletFor entry =
-    Parser.succeed entry
-        |. Parser.symbol (Entry.symbol entry)
+bulletFor : Bullet -> Parser Bullet
+bulletFor thisBullet =
+    Parser.succeed thisBullet
+        |. Parser.symbol (Bullet.symbol thisBullet)
 
 
 check : Int -> Page -> Page
@@ -125,7 +125,7 @@ toString =
 
 lineToString : Line -> String
 lineToString thisLine =
-    Entry.symbol thisLine.bullet
+    Bullet.symbol thisLine.bullet
         ++ " "
         ++ thisLine.body
         ++ optionalString (" " ++ starSymbol) thisLine.star
@@ -171,16 +171,16 @@ colorLine thisLine =
            )
         ++ " "
         ++ colorCode thisLine.bullet
-        ++ Entry.symbol thisLine.bullet
+        ++ Bullet.symbol thisLine.bullet
         ++ " "
         ++ thisLine.body
         ++ optionalString yellowStar thisLine.star
         ++ styleEscape [ style.reset ]
 
 
-colorCode : Entry -> String
-colorCode entry =
-    case entry of
+colorCode : Bullet -> String
+colorCode bullet_ =
+    case bullet_ of
         Task False ->
             styleEscape [ style.default ]
 
@@ -225,10 +225,10 @@ styleEscape inner =
 -- Add line
 
 
-add : Entry -> String -> Page -> Page
-add entry content p =
+add : Bullet -> String -> Page -> Page
+add bullet_ content p =
     List.append p
-        [ { bullet = entry
+        [ { bullet = bullet_
           , body = content
           , star = False
           , highlight = True

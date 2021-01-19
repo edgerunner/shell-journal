@@ -1,11 +1,11 @@
 module Command exposing (Command(..), decode)
 
-import Entry exposing (Entry(..))
+import Bullet exposing (Bullet(..))
 
 
 type Command
     = View
-    | Add Entry String
+    | Add Bullet String
     | Check Int
     | Star Int
     | WeirdCommand
@@ -37,7 +37,7 @@ decode args =
 decodeAdd : List String -> Maybe Command
 decodeAdd args =
     let
-        entry =
+        bullet =
             case List.head args of
                 Just "task" ->
                     Just (Task False)
@@ -56,7 +56,7 @@ decodeAdd args =
                 |> Maybe.andThen nonEmpty
                 |> Maybe.map (String.join " ")
     in
-    Maybe.map2 Add entry contents
+    Maybe.map2 Add bullet contents
 
 
 decodeCheck : List String -> Maybe Command
