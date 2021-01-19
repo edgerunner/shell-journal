@@ -86,25 +86,25 @@ update msg model =
                 |> PutPage View
                 |> attachCmd
 
-        ( GetPage (Add bullet content), GotPage response ) ->
+        ( GetPage ((Add bullet content) as command), GotPage response ) ->
             response
                 |> decodeAndParsePage
                 |> Page.add bullet content
-                |> SavePage (Add bullet content)
+                |> SavePage command
                 |> attachCmd
 
-        ( GetPage (Check lineNumber), GotPage response ) ->
+        ( GetPage ((Check lineNumber) as command), GotPage response ) ->
             response
                 |> decodeAndParsePage
                 |> Page.check lineNumber
-                |> SavePage (Check lineNumber)
+                |> SavePage command
                 |> attachCmd
 
-        ( GetPage (Star lineNumber), GotPage response ) ->
+        ( GetPage ((Star lineNumber) as command), GotPage response ) ->
             response
                 |> decodeAndParsePage
                 |> Page.star lineNumber
-                |> SavePage (Star lineNumber)
+                |> SavePage command
                 |> attachCmd
 
         ( SavePage command page, SavedPage ) ->
