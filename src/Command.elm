@@ -1,6 +1,7 @@
 module Command exposing (Command(..), parse)
 
 import Bullet exposing (Bullet(..))
+import Command.Path as Path exposing (Path)
 import Parser as P exposing ((|.), (|=), Parser)
 
 
@@ -9,13 +10,20 @@ type Command
     | Add Bullet String
     | Check Int
     | Star Int
-    | WeirdCommand
 
 
-parse : String -> Command
+parse : String -> Result String ( Path, Command )
 parse =
-    P.run commandParser
-        >> Result.withDefault WeirdCommand
+    P.run parser
+        >> Result.mapError P.deadEndsToString
+
+
+parser : Parser ( Path, Command )
+parser =
+    P.succeed Tuple.pair
+        |= Path.parser
+        |. P.spaces
+        |= commandParser
 
 
 commandParser : Parser Command

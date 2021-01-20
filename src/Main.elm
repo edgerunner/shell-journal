@@ -15,6 +15,7 @@ type Model
     = GetPage Command
     | PutPage Command Page
     | SavePage Command Page
+    | Error String
 
 
 type alias Flags =
@@ -39,17 +40,25 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     arguments flags
         |> Command.parse
-        |> GetPage
+        |> Result.map (Tuple.second >> GetPage)
+        |> handleError Error
         |> attachCmd
+
+
+handleError : (err -> ok) -> Result err ok -> ok
+handleError handle result =
+    case result of
+        Err err ->
+            handle err
+
+        Ok ok ->
+            ok
 
 
 attachCmd : Model -> ( Model, Cmd Msg )
 attachCmd model =
     Tuple.pair model <|
         case model of
-            GetPage WeirdCommand ->
-                put "Error: this command does not make sense to me"
-
             GetPage _ ->
                 FS.read path
 
@@ -64,6 +73,9 @@ attachCmd model =
 
             SavePage _ page ->
                 FS.write path <| Page.toString page
+
+            Error error ->
+                put error
 
 
 arguments : Flags -> String
@@ -136,4 +148,7 @@ subscriptions model =
             FS.subscription (always SavedPage)
 
         PutPage _ _ ->
+            Sub.none
+
+        Error _ ->
             Sub.none
