@@ -27,6 +27,7 @@ type alias Flags =
 type Msg
     = GotPage Value
     | SavedPage
+    | FSError Value
 
 
 main : Program Flags Model Msg
@@ -138,9 +139,17 @@ update msg model =
                 |> SavePage command
                 |> attachCmd
 
+        ( GetPage _, FSError _ ) ->
+            Error "Could not get that page"
+                |> attachCmd
+
         ( SavePage command page, SavedPage ) ->
             page
                 |> PutPage command
+                |> attachCmd
+
+        ( SavePage _ _, FSError _ ) ->
+            Error "Could not save that page"
                 |> attachCmd
 
         _ ->
@@ -160,13 +169,19 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     case model of
         GetPage _ ->
-            FS.subscription GotPage
+            FS.subscription (resultToMsg GotPage)
 
         SavePage _ _ ->
-            FS.subscription (always SavedPage)
+            FS.subscription (resultToMsg (always SavedPage))
 
         PutPage _ _ ->
             Sub.none
 
         Error _ ->
             Sub.none
+
+
+resultToMsg : (Value -> Msg) -> Result Value Value -> Msg
+resultToMsg constructor =
+    Result.map constructor
+        >> handleError FSError

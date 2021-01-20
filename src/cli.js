@@ -18,5 +18,5 @@ process.chdir(os.homedir());
 main.ports.fsRequest.subscribe(({method, args}) => {
     fs[method](...args)
         .then(main.ports.fsResponse.send)
-        .catch(console.error);
+        .catch(error => main.ports.fsResponse.send({error}));
 });
