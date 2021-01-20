@@ -6,6 +6,7 @@ import FS
 import Json.Decode exposing (decodeValue, list, string)
 import Json.Encode exposing (Value)
 import Page exposing (Page)
+import Utilities exposing (handleError)
 
 
 port put : String -> Cmd msg
@@ -43,16 +44,6 @@ init flags =
         |> Result.map (Tuple.second >> GetPage)
         |> handleError Error
         |> attachCmd
-
-
-handleError : (err -> ok) -> Result err ok -> ok
-handleError handle result =
-    case result of
-        Err err ->
-            handle err
-
-        Ok ok ->
-            ok
 
 
 attachCmd : Model -> ( Model, Cmd Msg )
