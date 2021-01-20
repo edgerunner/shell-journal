@@ -139,6 +139,12 @@ update msg model =
                 |> SavePage command
                 |> attachCmd
 
+        ( GetPage ((Add _ bullet content) as command), FSError _ ) ->
+            Page.blank
+                |> Page.add bullet content
+                |> SavePage command
+                |> attachCmd
+
         ( GetPage _, FSError _ ) ->
             Error "Could not get that page"
                 |> attachCmd

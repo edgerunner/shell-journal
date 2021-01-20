@@ -1,4 +1,4 @@
-module Page exposing (Line, Page, add, check, clip, lineToString, parse, star, terminalOutput, toString)
+module Page exposing (Line, Page, add, blank, check, clip, lineToString, parse, star, terminalOutput, toString)
 
 import Bullet exposing (Bullet(..))
 import Parser exposing ((|.), (|=), Parser)
@@ -95,6 +95,11 @@ modifyByLineNumber modify lineNumber =
             else
                 thisLine
         )
+
+
+blank : Page
+blank =
+    []
 
 
 toString : Page -> String
