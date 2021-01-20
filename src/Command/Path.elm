@@ -1,4 +1,4 @@
-module Command.Path exposing (Path, parser)
+module Command.Path exposing (Path(..), parser)
 
 import Parser as P exposing ((|.), (|=), Parser)
 import Set

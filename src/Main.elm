@@ -2,11 +2,12 @@ port module Main exposing (main)
 
 import Bullet exposing (Bullet(..))
 import Command exposing (Command(..))
+import Command.Path exposing (Path(..))
 import FS
 import Json.Decode exposing (decodeValue, list, string)
 import Json.Encode exposing (Value)
 import Page exposing (Page)
-import Utilities exposing (handleError)
+import Utilities exposing (applySecond, handleError)
 
 
 port put : String -> Cmd msg
@@ -41,7 +42,7 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     arguments flags
         |> Command.parse
-        |> Result.map (Tuple.second >> GetPage)
+        |> Result.map GetPage
         |> handleError Error
         |> attachCmd
 
@@ -50,10 +51,13 @@ attachCmd : Model -> ( Model, Cmd Msg )
 attachCmd model =
     Tuple.pair model <|
         case model of
-            GetPage _ ->
-                FS.read path
+            GetPage command ->
+                command
+                    |> Command.path
+                    |> Maybe.map (path >> FS.read)
+                    |> Maybe.withDefault Cmd.none
 
-            PutPage View page ->
+            PutPage (View _) page ->
                 put <| Page.terminalOutput page
 
             PutPage _ page ->
@@ -62,8 +66,14 @@ attachCmd model =
                     |> Page.terminalOutput
                     |> put
 
-            SavePage _ page ->
-                FS.write path <| Page.toString page
+            SavePage command page ->
+                ( command, page )
+                    |> Tuple.mapFirst Command.path
+                    |> Tuple.mapFirst (Maybe.map path)
+                    |> Tuple.mapFirst (Maybe.map FS.write)
+                    |> Tuple.mapFirst (Maybe.withDefault (always Cmd.none))
+                    |> Tuple.mapSecond Page.toString
+                    |> applySecond
 
             Error error ->
                 put error
@@ -76,35 +86,52 @@ arguments =
         >> String.join " "
 
 
-path : String
-path =
-    ".shjo/today.shjo"
+path : Path -> String
+path path_ =
+    pathString <|
+        case path_ of
+            Today ->
+                "today"
+
+            Tomorrow ->
+                "tomorrow"
+
+            Yesterday ->
+                "yesterday"
+
+            Project p ->
+                p
+
+
+pathString : String -> String
+pathString string =
+    ".shjo/" ++ string ++ ".shjo"
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( model, msg ) of
-        ( GetPage View, GotPage response ) ->
+        ( GetPage ((View _) as command), GotPage response ) ->
             response
                 |> decodeAndParsePage
-                |> PutPage View
+                |> PutPage command
                 |> attachCmd
 
-        ( GetPage ((Add bullet content) as command), GotPage response ) ->
+        ( GetPage ((Add _ bullet content) as command), GotPage response ) ->
             response
                 |> decodeAndParsePage
                 |> Page.add bullet content
                 |> SavePage command
                 |> attachCmd
 
-        ( GetPage ((Check lineNumber) as command), GotPage response ) ->
+        ( GetPage ((Check _ lineNumber) as command), GotPage response ) ->
             response
                 |> decodeAndParsePage
                 |> Page.check lineNumber
                 |> SavePage command
                 |> attachCmd
 
-        ( GetPage ((Star lineNumber) as command), GotPage response ) ->
+        ( GetPage ((Star _ lineNumber) as command), GotPage response ) ->
             response
                 |> decodeAndParsePage
                 |> Page.star lineNumber

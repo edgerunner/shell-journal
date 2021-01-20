@@ -1,4 +1,4 @@
-module Utilities exposing (clip, combineWith, handleError, only, optionalString)
+module Utilities exposing (applySecond, clip, combineWith, handleError, only, optionalString)
 
 
 handleError : (err -> ok) -> Result err ok -> ok
@@ -62,3 +62,8 @@ clip_ clippings predicate range lines =
                     predicate
                     range
                     rest
+
+
+applySecond : ( a -> b, a ) -> b
+applySecond ( func, val ) =
+    func val

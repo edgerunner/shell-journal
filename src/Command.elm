@@ -1,4 +1,4 @@
-module Command exposing (Command(..), parse)
+module Command exposing (Command(..), parse, path)
 
 import Bullet exposing (Bullet(..))
 import Command.Path as Path exposing (Path)
@@ -6,46 +6,45 @@ import Parser as P exposing ((|.), (|=), Parser)
 
 
 type Command
-    = View
-    | Add Bullet String
-    | Check Int
-    | Star Int
+    = View Path
+    | Add Path Bullet String
+    | Check Path Int
+    | Star Path Int
 
 
-parse : String -> Result String ( Path, Command )
+parse : String -> Result String Command
 parse =
     P.run parser
         >> Result.mapError P.deadEndsToString
 
 
-parser : Parser ( Path, Command )
+parser : Parser Command
 parser =
-    P.succeed Tuple.pair
-        |= Path.parser
+    Path.parser
         |. P.spaces
-        |= commandParser
+        |> P.andThen commandParser
 
 
-commandParser : Parser Command
-commandParser =
+commandParser : Path -> Parser Command
+commandParser path_ =
     P.oneOf
-        [ P.succeed Add
+        [ P.succeed (Add path_)
             |. P.oneOf [ P.keyword "add", P.succeed () ]
             |. P.spaces
             |= bulletParser
             |. P.spaces
             |= P.getChompedString (P.chompWhile (always True))
-        , P.succeed Check
+        , P.succeed (Check path_)
             |. P.keyword "check"
             |. P.spaces
             |= P.int
-        , P.succeed Star
+        , P.succeed (Star path_)
             |. P.keyword "star"
             |. P.spaces
             |= P.int
-        , P.succeed View
+        , P.succeed (View path_)
             |. P.keyword "view"
-        , P.succeed View
+        , P.succeed (View path_)
             |. P.end
         ]
 
@@ -57,3 +56,19 @@ bulletParser =
         , P.succeed Event |. P.keyword "event"
         , P.succeed Note |. P.keyword "note"
         ]
+
+
+path : Command -> Maybe Path
+path command =
+    case command of
+        View path_ ->
+            Just path_
+
+        Add path_ _ _ ->
+            Just path_
+
+        Star path_ _ ->
+            Just path_
+
+        Check path_ _ ->
+            Just path_
