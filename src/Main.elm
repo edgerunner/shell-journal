@@ -4,11 +4,11 @@ import Bullet exposing (Bullet(..))
 import Command exposing (Command(..))
 import Command.Path exposing (Path(..))
 import FS
+import Flags exposing (Flags)
 import Json.Decode as Jd
 import Json.Encode exposing (Value)
 import Page exposing (Page)
 import Time exposing (Posix, Zone)
-import Tuple
 import Utilities exposing (applySecond, handleError, splat2, splat3)
 
 
@@ -36,10 +36,6 @@ type alias Time =
     ( Posix, Zone )
 
 
-type alias Flags =
-    Value
-
-
 type Msg
     = GotPage Value
     | SavedPage
@@ -57,7 +53,7 @@ main =
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    decode flags
+    Flags.decode flags
         |> Result.mapError Jd.errorToString
         |> Result.map initialModel
         |> attachCmd
@@ -101,50 +97,6 @@ attachCmd model =
 
             Err error ->
                 put error
-
-
-decode : Flags -> Result Jd.Error ( Time, Command )
-decode =
-    Jd.decodeValue flagsDecoder
-
-
-flagsDecoder : Jd.Decoder ( Time, Command )
-flagsDecoder =
-    Jd.map2 Tuple.pair timezoneDecoder commandDecoder
-
-
-timezoneDecoder : Jd.Decoder Time
-timezoneDecoder =
-    Jd.map2 Tuple.pair timeDecoder zoneDecoder
-
-
-timeDecoder : Jd.Decoder Posix
-timeDecoder =
-    Jd.field "time" Jd.int
-        |> Jd.map Time.millisToPosix
-
-
-zoneDecoder : Jd.Decoder Zone
-zoneDecoder =
-    Jd.field "zone" Jd.int
-        |> Jd.map Time.customZone
-        |> Jd.map ((|>) [])
-
-
-commandDecoder : Jd.Decoder Command
-commandDecoder =
-    argsDecoder
-        |> Jd.andThen
-            (Command.parse
-                >> Result.map Jd.succeed
-                >> handleError Jd.fail
-            )
-
-
-argsDecoder : Jd.Decoder String
-argsDecoder =
-    Jd.field "args" (Jd.list Jd.string)
-        |> Jd.map (String.join " ")
 
 
 path : Time -> Path -> String
