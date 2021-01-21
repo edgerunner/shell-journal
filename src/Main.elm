@@ -19,10 +19,13 @@ type Phase
     = GetPage
     | PutPage Page
     | SavePage Page
-    | Error String
 
 
 type alias Model =
+    Result String ModelRecord
+
+
+type alias ModelRecord =
     { time : Posix
     , command : Command
     , phase : Phase
@@ -51,48 +54,45 @@ main =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     decode flags
-        |> buildInitialModel
+        |> Result.mapError Jd.errorToString
+        |> Result.map
+            (Tuple.mapFirst ModelRecord
+                >> applySecond
+                >> (|>) GetPage
+            )
         |> attachCmd
 
 
-buildInitialModel : Result Jd.Error ( Posix, Command ) -> Model
-buildInitialModel decodeResult =
-    case decodeResult of
-        Ok ( time, command ) ->
-            Model time command GetPage
+phaseAndCommand : Model -> Result String ( Phase, Command )
+phaseAndCommand model =
+    case model of
+        Ok rec ->
+            Ok ( rec.phase, rec.command )
 
-        Err error ->
-            errorModel <| Jd.errorToString error
-
-
-errorModel : String -> Model
-errorModel error =
-    { time = Time.millisToPosix 0
-    , command = View Today -- horrible horrible data modeling. Fix it
-    , phase = Error error
-    }
+        Err err ->
+            Err err
 
 
 attachCmd : Model -> ( Model, Cmd Msg )
-attachCmd ({ phase, command } as model) =
+attachCmd model =
     Tuple.pair model <|
-        case ( phase, command ) of
-            ( GetPage, _ ) ->
+        case phaseAndCommand model of
+            Ok ( GetPage, command ) ->
                 command
                     |> Command.path
                     |> Maybe.map (path >> FS.read)
                     |> Maybe.withDefault Cmd.none
 
-            ( PutPage page, View _ ) ->
+            Ok ( PutPage page, View _ ) ->
                 put <| Page.terminalOutput page
 
-            ( PutPage page, _ ) ->
+            Ok ( PutPage page, _ ) ->
                 page
                     |> Page.clip 2
                     |> Page.terminalOutput
                     |> put
 
-            ( SavePage page, _ ) ->
+            Ok ( SavePage page, command ) ->
                 ( command, page )
                     |> Tuple.mapFirst Command.path
                     |> Tuple.mapFirst (Maybe.map path)
@@ -101,7 +101,7 @@ attachCmd ({ phase, command } as model) =
                     |> Tuple.mapSecond Page.toString
                     |> applySecond
 
-            ( Error error, _ ) ->
+            Err error ->
                 put error
 
 
@@ -160,16 +160,16 @@ pathString string =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg ({ phase, command } as model) =
-    case ( phase, command, msg ) of
-        ( GetPage, View _, GotPage response ) ->
+update msg model =
+    case ( phaseAndCommand model, msg ) of
+        ( Ok ( GetPage, View _ ), GotPage response ) ->
             response
                 |> decodeAndParsePage
                 |> PutPage
                 |> nextPhase model
                 |> attachCmd
 
-        ( GetPage, Add _ bullet content, GotPage response ) ->
+        ( Ok ( GetPage, Add _ bullet content ), GotPage response ) ->
             response
                 |> decodeAndParsePage
                 |> Page.add bullet content
@@ -177,7 +177,7 @@ update msg ({ phase, command } as model) =
                 |> nextPhase model
                 |> attachCmd
 
-        ( GetPage, Check _ lineNumber, GotPage response ) ->
+        ( Ok ( GetPage, Check _ lineNumber ), GotPage response ) ->
             response
                 |> decodeAndParsePage
                 |> Page.check lineNumber
@@ -185,7 +185,7 @@ update msg ({ phase, command } as model) =
                 |> nextPhase model
                 |> attachCmd
 
-        ( GetPage, Star _ lineNumber, GotPage response ) ->
+        ( Ok ( GetPage, Star _ lineNumber ), GotPage response ) ->
             response
                 |> decodeAndParsePage
                 |> Page.star lineNumber
@@ -193,35 +193,35 @@ update msg ({ phase, command } as model) =
                 |> nextPhase model
                 |> attachCmd
 
-        ( GetPage, Add _ bullet content, FSError _ ) ->
+        ( Ok ( GetPage, Add _ bullet content ), FSError _ ) ->
             Page.blank
                 |> Page.add bullet content
                 |> SavePage
                 |> nextPhase model
                 |> attachCmd
 
-        ( GetPage, _, FSError _ ) ->
-            errorModel "Could not get that page"
+        ( Ok ( GetPage, _ ), FSError _ ) ->
+            Err "Could not get that page"
                 |> attachCmd
 
-        ( SavePage page, _, SavedPage ) ->
+        ( Ok ( SavePage page, _ ), SavedPage ) ->
             page
                 |> PutPage
                 |> nextPhase model
                 |> attachCmd
 
-        ( SavePage _, _, FSError _ ) ->
-            errorModel "Could not save that page"
+        ( Ok ( SavePage _, _ ), FSError _ ) ->
+            Err "Could not save that page"
                 |> attachCmd
 
         _ ->
-            errorModel "Invalid transition"
+            Err "Invalid transition"
                 |> attachCmd
 
 
 nextPhase : Model -> Phase -> Model
 nextPhase model phase =
-    { model | phase = phase }
+    Result.map (\rec -> { rec | phase = phase }) model
 
 
 decodeAndParsePage : Value -> Page
@@ -235,17 +235,19 @@ decodeAndParsePage response =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    case model.phase of
-        GetPage ->
-            FS.subscription (resultToMsg GotPage)
+    case model of
+        Ok rec ->
+            case rec.phase of
+                GetPage ->
+                    FS.subscription (resultToMsg GotPage)
 
-        SavePage _ ->
-            FS.subscription (resultToMsg (always SavedPage))
+                SavePage _ ->
+                    FS.subscription (resultToMsg (always SavedPage))
 
-        PutPage _ ->
-            Sub.none
+                PutPage _ ->
+                    Sub.none
 
-        Error _ ->
+        Err _ ->
             Sub.none
 
 
