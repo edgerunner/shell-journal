@@ -5,8 +5,9 @@ var os = require('os');
 
 // Get data from the command line
 var args = process.argv.slice(2);
+var time = Date.now()
 
-var main = Elm.Main.init({ flags: args });
+var main = Elm.Main.init({ flags: { args, time } });
 
 // Get output from the worker
 main.ports.put.subscribe(function(output) {
