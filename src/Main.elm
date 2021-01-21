@@ -7,7 +7,7 @@ import FS
 import Json.Decode as Jd
 import Json.Encode exposing (Value)
 import Page exposing (Page)
-import Time exposing (Posix)
+import Time exposing (Posix, Zone)
 import Tuple
 import Utilities exposing (applySecond, handleError, splat2, splat3)
 
@@ -26,10 +26,14 @@ type alias Model =
 
 
 type alias ModelRecord =
-    { time : Posix
+    { time : Time
     , command : Command
     , phase : Phase
     }
+
+
+type alias Time =
+    ( Posix, Zone )
 
 
 type alias Flags =
@@ -55,12 +59,16 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     decode flags
         |> Result.mapError Jd.errorToString
-        |> Result.map
-            (Tuple.mapFirst ModelRecord
-                >> applySecond
-                >> (|>) GetPage
-            )
+        |> Result.map initialModel
         |> attachCmd
+
+
+initialModel : ( ( Posix, Zone ), Command ) -> ModelRecord
+initialModel ( time, command ) =
+    { time = time
+    , command = command
+    , phase = GetPage
+    }
 
 
 attachCmd : Model -> ( Model, Cmd Msg )
@@ -95,20 +103,32 @@ attachCmd model =
                 put error
 
 
-decode : Flags -> Result Jd.Error ( Posix, Command )
+decode : Flags -> Result Jd.Error ( Time, Command )
 decode =
     Jd.decodeValue flagsDecoder
 
 
-flagsDecoder : Jd.Decoder ( Posix, Command )
+flagsDecoder : Jd.Decoder ( Time, Command )
 flagsDecoder =
-    Jd.map2 Tuple.pair timeDecoder commandDecoder
+    Jd.map2 Tuple.pair timezoneDecoder commandDecoder
+
+
+timezoneDecoder : Jd.Decoder Time
+timezoneDecoder =
+    Jd.map2 Tuple.pair timeDecoder zoneDecoder
 
 
 timeDecoder : Jd.Decoder Posix
 timeDecoder =
     Jd.field "time" Jd.int
         |> Jd.map Time.millisToPosix
+
+
+zoneDecoder : Jd.Decoder Zone
+zoneDecoder =
+    Jd.field "zone" Jd.int
+        |> Jd.map Time.customZone
+        |> Jd.map ((|>) [])
 
 
 commandDecoder : Jd.Decoder Command
@@ -127,34 +147,34 @@ argsDecoder =
         |> Jd.map (String.join " ")
 
 
-path : Posix -> Path -> String
-path now path_ =
+path : Time -> Path -> String
+path time path_ =
     pathString <|
         case path_ of
             Today ->
-                datePath now
+                datePath time
 
             Tomorrow ->
-                datePath (shiftDays 1 now)
+                datePath (shiftDays 1 time)
 
             Yesterday ->
-                datePath (shiftDays -1 now)
+                datePath (shiftDays -1 time)
 
             Project p ->
                 p
 
 
-datePath : Posix -> String
-datePath time =
+datePath : Time -> String
+datePath ( posix, zone ) =
     let
         year =
-            Time.toYear Time.utc time |> String.fromInt
+            Time.toYear zone posix |> String.fromInt
 
         day =
-            Time.toDay Time.utc time |> String.fromInt
+            Time.toDay zone posix |> String.fromInt
 
         month =
-            case Time.toMonth Time.utc time of
+            case Time.toMonth zone posix of
                 Time.Jan ->
                     "01"
 
@@ -194,11 +214,13 @@ datePath time =
     String.join "-" [ year, month, day ]
 
 
-shiftDays : Int -> Posix -> Posix
+shiftDays : Int -> Time -> Time
 shiftDays shift =
-    Time.posixToMillis
-        >> (+) (shift * 86400000)
-        >> Time.millisToPosix
+    Tuple.mapFirst
+        (Time.posixToMillis
+            >> (+) (shift * 86400000)
+            >> Time.millisToPosix
+        )
 
 
 pathString : String -> String

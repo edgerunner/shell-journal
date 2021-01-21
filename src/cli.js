@@ -6,8 +6,9 @@ var os = require('os');
 // Get data from the command line
 var args = process.argv.slice(2);
 var time = Date.now()
+var zone = - (new Date(time)).getTimezoneOffset()
 
-var main = Elm.Main.init({ flags: { args, time } });
+var main = Elm.Main.init({ flags: { args, time, zone } });
 
 // Get output from the worker
 main.ports.put.subscribe(function(output) {
