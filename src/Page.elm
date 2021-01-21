@@ -1,7 +1,8 @@
-module Page exposing (Line, Page, add, check, clip, lineToString, parse, star, terminalOutput, toString)
+module Page exposing (Line, Page, add, blank, check, clip, lineToString, parse, star, terminalOutput, toString)
 
 import Bullet exposing (Bullet(..))
 import Parser exposing ((|.), (|=), Parser)
+import Utilities exposing (only, optionalString)
 
 
 type alias Page =
@@ -96,13 +97,9 @@ modifyByLineNumber modify lineNumber =
         )
 
 
-only : (a -> Bool) -> a -> Maybe a
-only predicate value =
-    if predicate value then
-        Just value
-
-    else
-        Nothing
+blank : Page
+blank =
+    []
 
 
 toString : Page -> String
@@ -118,15 +115,6 @@ lineToString thisLine =
         ++ thisLine.body
         ++ optionalString (" " ++ starSymbol) thisLine.star
         ++ "\n"
-
-
-optionalString : String -> Bool -> String
-optionalString string condition =
-    if condition then
-        string
-
-    else
-        ""
 
 
 
@@ -227,33 +215,4 @@ add bullet content p =
 
 clip : Int -> Page -> Page
 clip =
-    clipHelp []
-
-
-clipHelp : Page -> Int -> Page -> Page
-clipHelp clippings range lines =
-    case lines of
-        [] ->
-            clippings
-                |> List.take (range * 2)
-                |> List.reverse
-
-        first :: rest ->
-            if first.highlight then
-                ( clippings, rest )
-                    |> Tuple.mapFirst
-                        (List.take range >> List.reverse)
-                    |> Tuple.mapSecond
-                        (List.take range >> (::) first)
-                    |> combineWith (++)
-
-            else
-                clipHelp
-                    (first :: clippings)
-                    range
-                    rest
-
-
-combineWith : (a -> b -> c) -> ( a, b ) -> c
-combineWith fn ( a, b ) =
-    fn a b
+    Utilities.clip .highlight

@@ -1,6 +1,8 @@
 port module FS exposing (append, read, subscription, write)
 
+import Json.Decode as Jd
 import Json.Encode as Je exposing (Value)
+import Utilities exposing (handleError)
 
 
 port fsRequest : { method : String, args : List Value } -> Cmd msg
@@ -37,6 +39,20 @@ write path string =
     request "writeFile" [ Je.string path, Je.string string ]
 
 
-subscription : (Value -> msg) -> Sub msg
-subscription =
-    fsResponse
+subscription : (Result Value Value -> msg) -> Sub msg
+subscription map =
+    Sub.map map (fsResponse fsResult)
+
+
+fsResult : Value -> Result Value Value
+fsResult =
+    Jd.decodeValue fsResultDecoder
+        >> handleError (always <| Err Je.null)
+
+
+fsResultDecoder : Jd.Decoder (Result Value Value)
+fsResultDecoder =
+    Jd.oneOf
+        [ Jd.map Err <| Jd.field "error" Jd.value
+        , Jd.map Ok Jd.value
+        ]
