@@ -1,4 +1,4 @@
-module Utilities exposing (applySecond, clip, combineWith, handleError, only, optionalString)
+module Utilities exposing (applySecond, clip, combineWith, handleError, only, optionalString, splat2, splat3)
 
 
 handleError : (err -> ok) -> Result err ok -> ok
@@ -67,3 +67,13 @@ clip_ clippings predicate range lines =
 applySecond : ( a -> b, a ) -> b
 applySecond ( func, val ) =
     func val
+
+
+splat2 : (x -> a) -> (x -> b) -> x -> ( a, b )
+splat2 mapA mapB x =
+    ( mapA x, mapB x )
+
+
+splat3 : (x -> a) -> (x -> b) -> (x -> c) -> x -> ( a, b, c )
+splat3 mapA mapB mapC x =
+    ( mapA x, mapB x, mapC x )

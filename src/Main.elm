@@ -9,7 +9,7 @@ import Json.Encode exposing (Value)
 import Page exposing (Page)
 import Time exposing (Posix)
 import Tuple
-import Utilities exposing (applySecond, handleError)
+import Utilities exposing (applySecond, handleError, splat2, splat3)
 
 
 port put : String -> Cmd msg
@@ -63,39 +63,29 @@ init flags =
         |> attachCmd
 
 
-phaseAndCommand : Model -> Result String ( Phase, Command )
-phaseAndCommand model =
-    case model of
-        Ok rec ->
-            Ok ( rec.phase, rec.command )
-
-        Err err ->
-            Err err
-
-
 attachCmd : Model -> ( Model, Cmd Msg )
 attachCmd model =
     Tuple.pair model <|
-        case phaseAndCommand model of
-            Ok ( GetPage, command ) ->
+        case Result.map (splat3 .phase .command .time) model of
+            Ok ( GetPage, command, time ) ->
                 command
                     |> Command.path
-                    |> Maybe.map (path >> FS.read)
+                    |> Maybe.map (path time >> FS.read)
                     |> Maybe.withDefault Cmd.none
 
-            Ok ( PutPage page, View _ ) ->
+            Ok ( PutPage page, View _, _ ) ->
                 put <| Page.terminalOutput page
 
-            Ok ( PutPage page, _ ) ->
+            Ok ( PutPage page, _, _ ) ->
                 page
                     |> Page.clip 2
                     |> Page.terminalOutput
                     |> put
 
-            Ok ( SavePage page, command ) ->
+            Ok ( SavePage page, command, time ) ->
                 ( command, page )
                     |> Tuple.mapFirst Command.path
-                    |> Tuple.mapFirst (Maybe.map path)
+                    |> Tuple.mapFirst (Maybe.map (path time))
                     |> Tuple.mapFirst (Maybe.map FS.write)
                     |> Tuple.mapFirst (Maybe.withDefault (always Cmd.none))
                     |> Tuple.mapSecond Page.toString
@@ -137,21 +127,78 @@ argsDecoder =
         |> Jd.map (String.join " ")
 
 
-path : Path -> String
-path path_ =
+path : Posix -> Path -> String
+path now path_ =
     pathString <|
         case path_ of
             Today ->
-                "today"
+                datePath now
 
             Tomorrow ->
-                "tomorrow"
+                datePath (shiftDays 1 now)
 
             Yesterday ->
-                "yesterday"
+                datePath (shiftDays -1 now)
 
             Project p ->
                 p
+
+
+datePath : Posix -> String
+datePath time =
+    let
+        year =
+            Time.toYear Time.utc time |> String.fromInt
+
+        day =
+            Time.toDay Time.utc time |> String.fromInt
+
+        month =
+            case Time.toMonth Time.utc time of
+                Time.Jan ->
+                    "01"
+
+                Time.Feb ->
+                    "02"
+
+                Time.Mar ->
+                    "03"
+
+                Time.Apr ->
+                    "04"
+
+                Time.May ->
+                    "05"
+
+                Time.Jun ->
+                    "06"
+
+                Time.Jul ->
+                    "07"
+
+                Time.Aug ->
+                    "08"
+
+                Time.Sep ->
+                    "09"
+
+                Time.Oct ->
+                    "10"
+
+                Time.Nov ->
+                    "11"
+
+                Time.Dec ->
+                    "12"
+    in
+    String.join "-" [ year, month, day ]
+
+
+shiftDays : Int -> Posix -> Posix
+shiftDays shift =
+    Time.posixToMillis
+        >> (+) (shift * 86400000)
+        >> Time.millisToPosix
 
 
 pathString : String -> String
@@ -161,7 +208,7 @@ pathString string =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case ( phaseAndCommand model, msg ) of
+    case ( Result.map (splat2 .phase .command) model, msg ) of
         ( Ok ( GetPage, View _ ), GotPage response ) ->
             response
                 |> decodeAndParsePage
