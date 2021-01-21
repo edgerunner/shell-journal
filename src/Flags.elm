@@ -3,11 +3,7 @@ module Flags exposing (Flags, decode)
 import Command exposing (Command)
 import Json.Decode as Jd exposing (Value)
 import Time exposing (Posix, Zone)
-import Utilities exposing (handleError)
-
-
-type alias Time =
-    ( Posix, Zone )
+import Utilities exposing (Time, handleError)
 
 
 type alias Flags =

@@ -2,11 +2,8 @@ module Command.Path exposing (Path(..), parser, toString)
 
 import Parser as P exposing ((|.), (|=), Parser)
 import Set
-import Time exposing (Posix, Zone)
-
-
-type alias Time =
-    ( Posix, Zone )
+import Time
+import Utilities exposing (Time)
 
 
 type Path

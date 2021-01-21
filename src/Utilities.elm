@@ -1,4 +1,10 @@
-module Utilities exposing (applySecond, clip, combineWith, handleError, only, optionalString, splat2, splat3)
+module Utilities exposing (Time, applySecond, clip, combineWith, handleError, only, optionalString, splat2, splat3)
+
+import Time exposing (Posix, Zone)
+
+
+type alias Time =
+    ( Posix, Zone )
 
 
 handleError : (err -> ok) -> Result err ok -> ok

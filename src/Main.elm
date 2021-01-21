@@ -8,8 +8,7 @@ import Flags exposing (Flags)
 import Json.Decode as Jd
 import Json.Encode exposing (Value)
 import Page exposing (Page)
-import Time exposing (Posix, Zone)
-import Utilities exposing (applySecond, handleError, splat2, splat3)
+import Utilities exposing (Time, applySecond, handleError, splat2, splat3)
 
 
 port put : String -> Cmd msg
@@ -30,10 +29,6 @@ type alias ModelRecord =
     , command : Command
     , phase : Phase
     }
-
-
-type alias Time =
-    ( Posix, Zone )
 
 
 type Msg
@@ -59,7 +54,7 @@ init flags =
         |> attachCmd
 
 
-initialModel : ( ( Posix, Zone ), Command ) -> ModelRecord
+initialModel : ( Time, Command ) -> ModelRecord
 initialModel ( time, command ) =
     { time = time
     , command = command
