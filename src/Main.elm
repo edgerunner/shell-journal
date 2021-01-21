@@ -2,7 +2,7 @@ port module Main exposing (main)
 
 import Bullet exposing (Bullet(..))
 import Command exposing (Command(..))
-import Command.Path exposing (Path(..))
+import Command.Path as Path exposing (Path(..))
 import FS
 import Flags exposing (Flags)
 import Json.Decode as Jd
@@ -74,7 +74,7 @@ attachCmd model =
             Ok ( GetPage, command, time ) ->
                 command
                     |> Command.path
-                    |> Maybe.map (path time >> FS.read)
+                    |> Maybe.map (Path.toString time >> FS.read)
                     |> Maybe.withDefault Cmd.none
 
             Ok ( PutPage page, View _, _ ) ->
@@ -89,7 +89,7 @@ attachCmd model =
             Ok ( SavePage page, command, time ) ->
                 ( command, page )
                     |> Tuple.mapFirst Command.path
-                    |> Tuple.mapFirst (Maybe.map (path time))
+                    |> Tuple.mapFirst (Maybe.map (Path.toString time))
                     |> Tuple.mapFirst (Maybe.map FS.write)
                     |> Tuple.mapFirst (Maybe.withDefault (always Cmd.none))
                     |> Tuple.mapSecond Page.toString
@@ -97,87 +97,6 @@ attachCmd model =
 
             Err error ->
                 put error
-
-
-path : Time -> Path -> String
-path time path_ =
-    pathString <|
-        case path_ of
-            Today ->
-                datePath time
-
-            Tomorrow ->
-                datePath (shiftDays 1 time)
-
-            Yesterday ->
-                datePath (shiftDays -1 time)
-
-            Project p ->
-                p
-
-
-datePath : Time -> String
-datePath ( posix, zone ) =
-    let
-        year =
-            Time.toYear zone posix |> String.fromInt
-
-        day =
-            Time.toDay zone posix |> String.fromInt
-
-        month =
-            case Time.toMonth zone posix of
-                Time.Jan ->
-                    "01"
-
-                Time.Feb ->
-                    "02"
-
-                Time.Mar ->
-                    "03"
-
-                Time.Apr ->
-                    "04"
-
-                Time.May ->
-                    "05"
-
-                Time.Jun ->
-                    "06"
-
-                Time.Jul ->
-                    "07"
-
-                Time.Aug ->
-                    "08"
-
-                Time.Sep ->
-                    "09"
-
-                Time.Oct ->
-                    "10"
-
-                Time.Nov ->
-                    "11"
-
-                Time.Dec ->
-                    "12"
-    in
-    String.join "-" [ year, month, day ]
-
-
-shiftDays : Int -> Time -> Time
-shiftDays shift =
-    Tuple.mapFirst
-        (Time.posixToMillis
-            >> (+) (shift * 86400000)
-            >> Time.millisToPosix
-        )
-
-
-pathString : String -> String
-pathString string =
-    ".shjo/" ++ string ++ ".shjo"
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
