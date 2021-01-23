@@ -24,9 +24,6 @@ type RelativeDateKeyword
     = This DateBlockKeyword
     | Next DateBlockKeyword
     | Last DateBlockKeyword
-    | Today
-    | Yesterday
-    | Tomorrow
 
 
 type DateBlockKeyword
@@ -43,9 +40,17 @@ parser =
     P.oneOf
         [ dateParser
         , hashtagPathParser
-        , P.succeed (RelativeDate Today)
+        , P.succeed (RelativeDate (This KwDay))
         ]
-        |. chompIf ((==) ' ')
+        |. closerParser
+
+
+closerParser : Parser ()
+closerParser =
+    P.oneOf
+        [ P.chompIf ((/=) ' ') |> P.andThen (always <| P.problem "path must end properly")
+        , P.succeed ()
+        ]
 
 
 dateParser : Parser Path
@@ -63,9 +68,9 @@ dateKeywordParser : Parser Path
 dateKeywordParser =
     P.succeed RelativeDate
         |= P.oneOf
-            [ P.succeed Today |. P.keyword "today"
-            , P.succeed Tomorrow |. P.keyword "tomorrow"
-            , P.succeed Yesterday |. P.keyword "yesterday"
+            [ P.succeed (This KwDay) |. P.keyword "today"
+            , P.succeed (Next KwDay) |. P.keyword "tomorrow"
+            , P.succeed (Last KwDay) |. P.keyword "yesterday"
             , dateBlockKeywordParser "this" This
             , dateBlockKeywordParser "next" Next
             , dateBlockKeywordParser "last" Last
@@ -212,7 +217,7 @@ toString : Time -> Path -> String
 toString time path_ =
     pathString <|
         case path_ of
-            RelativeDate Today ->
+            RelativeDate (This KwDay) ->
                 datePath time
 
             Hashtag tag ->
