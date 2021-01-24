@@ -162,7 +162,9 @@ yearParser =
 
 constrainedIntParser : Int -> Int -> Parser Int
 constrainedIntParser min max =
-    P.int
+    P.succeed identity
+        |. P.chompWhile ((==) '0')
+        |= P.int
         |> P.andThen
             (\int ->
                 if int >= min && int <= max then
