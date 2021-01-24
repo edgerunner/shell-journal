@@ -9,7 +9,7 @@ import Utilities exposing (Time, anyOf)
 type Path
     = Date (Maybe Int) DatePath
     | RelativeDate RelativeDateKeyword
-    | Hashtag String
+    | Tag String
 
 
 type DatePath
@@ -38,10 +38,21 @@ type DateBlockKeyword
 parser : Parser Path
 parser =
     P.oneOf
-        [ dateParser
-        , hashtagPathParser
+        [ pathParser
         , P.succeed (RelativeDate (This KwDay))
         ]
+
+
+pathParser : Parser Path
+pathParser =
+    P.succeed identity
+        |. P.symbol "@"
+        |= P.oneOf
+            [ dateKeywordParser
+            , datePathParser
+            , tagPathParser
+            , P.problem "The @ symbol must be followed by a date keyword, date or tag"
+            ]
         |. closerParser
 
 
@@ -51,17 +62,6 @@ closerParser =
         [ P.chompIf ((/=) ' ') |> P.andThen (always <| P.problem "path must end properly")
         , P.succeed ()
         ]
-
-
-dateParser : Parser Path
-dateParser =
-    P.succeed identity
-        |. P.symbol "@"
-        |= P.oneOf
-            [ dateKeywordParser
-            , datePathParser
-            , P.problem "The @ symbol must be followed by a date keyword or date"
-            ]
 
 
 dateKeywordParser : Parser Path
@@ -195,18 +195,14 @@ keywords =
     List.map (P.keyword >> P.backtrackable) >> P.oneOf
 
 
-hashtagPathParser : Parser Path
-hashtagPathParser =
-    P.succeed Hashtag
-        |. P.symbol "#"
-        |= P.oneOf
-            [ P.variable
-                { start = Char.isAlpha
-                , inner = anyOf [ Char.isAlphaNum, (==) '-' ]
-                , reserved = Set.empty
-                }
-            , P.problem "# must be followed by a tag name"
-            ]
+tagPathParser : Parser Path
+tagPathParser =
+    P.succeed Tag
+        |= P.variable
+            { start = Char.isAlpha
+            , inner = anyOf [ Char.isAlphaNum, (==) '-' ]
+            , reserved = Set.empty
+            }
 
 
 
@@ -220,7 +216,7 @@ toString time path_ =
             RelativeDate (This KwDay) ->
                 datePath time
 
-            Hashtag tag ->
+            Tag tag ->
                 tag
 
             _ ->
