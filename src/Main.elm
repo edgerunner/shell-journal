@@ -69,11 +69,14 @@ attachCmd model =
             Ok ( GetPage, command, time ) ->
                 command
                     |> Command.path
-                    |> Maybe.map (Path.toString time >> FS.read)
+                    |> Maybe.map (Path.toString time >> fullPath >> FS.read)
                     |> Maybe.withDefault Cmd.none
 
-            Ok ( PutPage page, View _, _ ) ->
-                put <| Page.terminalOutput page
+            Ok ( PutPage page, View command, _ ) ->
+                Cmd.batch
+                    [ put <| Page.terminalOutput page
+                    , put <| "\nShell Journal"
+                    ]
 
             Ok ( PutPage page, _, _ ) ->
                 page
@@ -85,6 +88,7 @@ attachCmd model =
                 ( command, page )
                     |> Tuple.mapFirst Command.path
                     |> Tuple.mapFirst (Maybe.map (Path.toString time))
+                    |> Tuple.mapFirst (Maybe.map fullPath)
                     |> Tuple.mapFirst (Maybe.map FS.write)
                     |> Tuple.mapFirst (Maybe.withDefault (always Cmd.none))
                     |> Tuple.mapSecond Page.toString
@@ -92,6 +96,11 @@ attachCmd model =
 
             Err error ->
                 put error
+
+
+fullPath : String -> String
+fullPath path =
+    String.concat [ ".shjo/", path, ".shjo" ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

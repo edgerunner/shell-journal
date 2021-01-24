@@ -1,4 +1,4 @@
-module Utilities exposing (Time, applySecond, clip, combineWith, handleError, only, optionalString, splat2, splat3)
+module Utilities exposing (Time, anyOf, applySecond, clip, combineWith, handleError, only, optionalString, splat2, splat3)
 
 import Time exposing (Posix, Zone)
 
@@ -83,3 +83,8 @@ splat2 mapA mapB x =
 splat3 : (x -> a) -> (x -> b) -> (x -> c) -> x -> ( a, b, c )
 splat3 mapA mapB mapC x =
     ( mapA x, mapB x, mapC x )
+
+
+anyOf : List (subject -> Bool) -> subject -> Bool
+anyOf predicates subject =
+    List.foldl ((|>) subject >> (||)) False predicates
