@@ -72,17 +72,26 @@ attachCmd model =
                     |> Maybe.map (Path.toString time >> fullPath >> FS.read)
                     |> Maybe.withDefault Cmd.none
 
-            Ok ( PutPage page, View command, _ ) ->
+            Ok ( PutPage page, View path, time ) ->
                 Cmd.batch
                     [ put <| Page.terminalOutput page
-                    , put <| "\nShell Journal"
+                    , put <| title (Just (Path.toString time path))
                     ]
 
-            Ok ( PutPage page, _, _ ) ->
+            Ok ( PutPage page, command, time ) ->
                 page
                     |> Page.clip 2
                     |> Page.terminalOutput
                     |> put
+                    |> List.singleton
+                    |> (::)
+                        (Command.path command
+                            |> Maybe.map (Path.toString time)
+                            |> title
+                            |> put
+                        )
+                    |> List.reverse
+                    |> Cmd.batch
 
             Ok ( SavePage page, command, time ) ->
                 ( command, page )
@@ -96,6 +105,16 @@ attachCmd model =
 
             Err error ->
                 put error
+
+
+title : Maybe String -> String
+title path =
+    case path of
+        Just p ->
+            "\n Shell Journal — " ++ p
+
+        Nothing ->
+            "\n Shell Journal"
 
 
 fullPath : String -> String
