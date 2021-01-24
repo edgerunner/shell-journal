@@ -210,11 +210,11 @@ tagPathParser =
 
 
 toString : Time -> Path -> String
-toString time path_ =
+toString time path =
     pathString <|
-        case path_ of
-            RelativeDate (This KwDay) ->
-                datePath time
+        case path of
+            Date year date ->
+                datePath time year date
 
             Tag tag ->
                 tag
@@ -223,54 +223,89 @@ toString time path_ =
                 Debug.todo "date path strings"
 
 
-datePath : Time -> String
-datePath ( posix, zone ) =
-    let
-        year =
-            Time.toYear zone posix |> String.fromInt
+toYearString : Time -> Maybe Int -> String
+toYearString ( posix, zone ) =
+    Maybe.withDefault (Time.toYear zone posix)
+        >> String.fromInt
 
-        day =
-            Time.toDay zone posix |> String.fromInt
 
-        month =
-            case Time.toMonth zone posix of
-                Time.Jan ->
-                    "01"
+toMonthString : Time.Month -> String
+toMonthString month =
+    case month of
+        Time.Jan ->
+            "01"
 
-                Time.Feb ->
-                    "02"
+        Time.Feb ->
+            "02"
 
-                Time.Mar ->
-                    "03"
+        Time.Mar ->
+            "03"
 
-                Time.Apr ->
-                    "04"
+        Time.Apr ->
+            "04"
 
-                Time.May ->
-                    "05"
+        Time.May ->
+            "05"
 
-                Time.Jun ->
-                    "06"
+        Time.Jun ->
+            "06"
 
-                Time.Jul ->
-                    "07"
+        Time.Jul ->
+            "07"
 
-                Time.Aug ->
-                    "08"
+        Time.Aug ->
+            "08"
 
-                Time.Sep ->
-                    "09"
+        Time.Sep ->
+            "09"
 
-                Time.Oct ->
-                    "10"
+        Time.Oct ->
+            "10"
 
-                Time.Nov ->
-                    "11"
+        Time.Nov ->
+            "11"
 
-                Time.Dec ->
-                    "12"
-    in
-    String.join "-" [ year, month, day ]
+        Time.Dec ->
+            "12"
+
+
+datePath : Time -> Maybe Int -> DatePath -> String
+datePath time year date =
+    case date of
+        Year ->
+            toYearString time year
+
+        Quarter quarter ->
+            String.concat
+                [ toYearString time year
+                , "-q"
+                , String.fromInt quarter
+                ]
+
+        Month month ->
+            String.concat
+                [ toYearString time year
+                , "-"
+                , toMonthString month
+                ]
+
+        Week week ->
+            String.concat
+                [ toYearString time year
+                , "-w"
+                , String.fromInt week
+                    |> String.padLeft 2 '0'
+                ]
+
+        Day month day ->
+            String.concat
+                [ toYearString time year
+                , "-"
+                , toMonthString month
+                , "-"
+                , String.fromInt day
+                    |> String.padLeft 2 '0'
+                ]
 
 
 shiftDays : Int -> Time -> Time
