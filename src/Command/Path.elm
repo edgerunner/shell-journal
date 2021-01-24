@@ -3,6 +3,7 @@ module Command.Path exposing (Path(..), parser, toString)
 import Parser as P exposing ((|.), (|=), Parser)
 import Set
 import Time
+import Time.Extra as TE
 import Utilities exposing (Time, anyOf)
 
 
@@ -211,16 +212,17 @@ tagPathParser =
 
 toString : Time -> Path -> String
 toString time path =
-    pathString <|
-        case path of
-            Date year date ->
-                datePath time year date
+    case path of
+        Date year date ->
+            datePath time year date
 
-            Tag tag ->
-                tag
+        Tag tag ->
+            tag
 
-            _ ->
-                Debug.todo "date path strings"
+        RelativeDate keyword ->
+            keyword
+                |> relativeToAbsoluteDate time
+                |> toString time
 
 
 toYearString : Time -> Maybe Int -> String
@@ -308,15 +310,113 @@ datePath time year date =
                 ]
 
 
-shiftDays : Int -> Time -> Time
-shiftDays shift =
-    Tuple.mapFirst
-        (Time.posixToMillis
-            >> (+) (shift * 86400000)
-            >> Time.millisToPosix
-        )
+relativeToAbsoluteDate : Time -> RelativeDateKeyword -> Path
+relativeToAbsoluteDate (( posix, zone ) as time) dateReference =
+    let
+        parts =
+            TE.posixToParts zone posix
+    in
+    case dateReference of
+        Next KwYear ->
+            Date (Just (parts.year + 1)) Year
+
+        Last KwYear ->
+            Date (Just (parts.year - 1)) Year
+
+        This keyword ->
+            case keyword of
+                KwMonth ->
+                    Month parts.month
+                        |> Date (Just parts.year)
+
+                KwDay ->
+                    Day parts.month parts.day
+                        |> Date (Just parts.year)
+
+                KwQuarter ->
+                    posix
+                        |> TE.floor TE.Year zone
+                        |> TE.diff TE.Quarter zone posix
+                        |> negate
+                        |> (+) 1
+                        |> Quarter
+                        |> Date (Just parts.year)
+
+                KwWeek ->
+                    posix
+                        |> TE.floor TE.Year zone
+                        |> TE.diff TE.Week zone posix
+                        |> negate
+                        |> (+) 1
+                        |> Week
+                        |> Date (Just parts.year)
+
+                KwYear ->
+                    Date (Just parts.year) Year
+
+                KwWeekday weekday ->
+                    posix
+                        |> TE.floor TE.Week zone
+                        |> TE.ceiling (weekdayInterval weekday) zone
+                        |> TE.posixToParts zone
+                        |> (\p ->
+                                Day p.month p.day
+                                    |> Date (Just p.year)
+                           )
+
+        Next keyword ->
+            relativeToAbsoluteDate ( shift 1 time keyword, zone ) (This keyword)
+
+        Last keyword ->
+            relativeToAbsoluteDate ( shift -1 time keyword, zone ) (This keyword)
 
 
-pathString : String -> String
-pathString string =
-    ".shjo/" ++ string ++ ".shjo"
+weekdayInterval : Time.Weekday -> TE.Interval
+weekdayInterval weekday =
+    case weekday of
+        Time.Mon ->
+            TE.Monday
+
+        Time.Tue ->
+            TE.Tuesday
+
+        Time.Wed ->
+            TE.Wednesday
+
+        Time.Thu ->
+            TE.Thursday
+
+        Time.Fri ->
+            TE.Friday
+
+        Time.Sat ->
+            TE.Saturday
+
+        Time.Sun ->
+            TE.Sunday
+
+
+shift : Int -> Time -> DateBlockKeyword -> Time.Posix
+shift offset ( posix, zone ) keyword =
+    let
+        add interval =
+            TE.add interval offset zone posix
+    in
+    case keyword of
+        KwDay ->
+            add TE.Day
+
+        KwWeek ->
+            add TE.Week
+
+        KwMonth ->
+            add TE.Month
+
+        KwQuarter ->
+            add TE.Quarter
+
+        KwYear ->
+            add TE.Year
+
+        KwWeekday weekday ->
+            add <| weekdayInterval weekday
