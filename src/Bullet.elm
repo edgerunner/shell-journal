@@ -22,7 +22,7 @@ symbol bullet =
             "○"
 
         Note ->
-            " "
+            "-"
 
 
 parser : Parser Bullet
