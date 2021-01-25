@@ -1,6 +1,6 @@
-module Page exposing (Line, Page, add, blank, check, clip, lineToString, parse, star, terminalOutput, toString)
+module Page exposing (Line, Page, add, blank, check, clip, get, lineToString, move, parse, star, terminalOutput, toString)
 
-import Bullet exposing (Bullet(..))
+import Bullet exposing (Bullet(..), TaskState(..))
 import Parser exposing ((|.), (|=), Parser)
 import Utilities exposing (only, optionalString)
 
@@ -72,8 +72,8 @@ starSymbol =
 
 check : Int -> Page -> Page
 check =
-    only (.bullet >> (==) (Task False))
-        >> Maybe.map (\l -> { l | bullet = Task True })
+    only (.bullet >> (==) (Task Pending))
+        >> Maybe.map (\l -> { l | bullet = Task Done })
         |> modifyByLineNumber
 
 
@@ -112,6 +112,7 @@ lineToString : Line -> String
 lineToString thisLine =
     Bullet.symbol thisLine.bullet
         ++ " "
+        ++ moveDestination thisLine
         ++ thisLine.body
         ++ optionalString (" " ++ starSymbol) thisLine.star
         ++ "\n"
@@ -149,19 +150,33 @@ colorLine thisLine =
         ++ colorCode thisLine.bullet
         ++ Bullet.symbol thisLine.bullet
         ++ " "
+        ++ moveDestination thisLine
         ++ thisLine.body
         ++ optionalString yellowStar thisLine.star
         ++ styleEscape [ style.reset ]
 
 
+moveDestination : Line -> String
+moveDestination thisLine =
+    case thisLine.bullet of
+        Task (Moved destination) ->
+            "[" ++ destination ++ "] "
+
+        _ ->
+            ""
+
+
 colorCode : Bullet -> String
 colorCode bullet =
     case bullet of
-        Task False ->
+        Task Pending ->
             styleEscape [ style.default ]
 
-        Task True ->
+        Task Done ->
             styleEscape [ style.dim ]
+
+        Task (Moved _) ->
+            styleEscape [ style.green ]
 
         Event ->
             styleEscape [ style.white ]
@@ -178,7 +193,7 @@ yellowStar =
         ++ styleEscape [ style.reset ]
 
 
-style : { reset : String, bold : String, dim : String, italic : String, default : String, white : String, blue : String, black : String, brightYellow : String }
+style : { reset : String, bold : String, dim : String, italic : String, default : String, white : String, green : String, blue : String, black : String, brightYellow : String }
 style =
     { reset = "0"
     , bold = "1"
@@ -187,6 +202,7 @@ style =
     , default = "39"
     , white = "37"
     , blue = "34"
+    , green = "32"
     , black = "30"
     , brightYellow = "93"
     }
@@ -211,6 +227,33 @@ add bullet content p =
           , lineNumber = List.length p + 1
           }
         ]
+
+
+move : String -> Int -> Page -> Page
+move destination =
+    modifyByLineNumber
+        (\line_ ->
+            case line_.bullet of
+                Task Pending ->
+                    Just { line_ | bullet = Task (Moved destination) }
+
+                _ ->
+                    Nothing
+        )
+
+
+get : Int -> Page -> Maybe Line
+get lineNumber lines =
+    case lines of
+        [] ->
+            Nothing
+
+        first :: rest ->
+            if first.lineNumber == lineNumber then
+                Just first
+
+            else
+                get lineNumber rest
 
 
 clip : Int -> Page -> Page

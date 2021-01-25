@@ -1,6 +1,6 @@
 module Command exposing (Command(..), parse, path)
 
-import Bullet exposing (Bullet(..))
+import Bullet exposing (Bullet(..), TaskState(..))
 import Command.Path as Path exposing (Path)
 import Parser as P exposing ((|.), (|=), Parser)
 
@@ -10,6 +10,7 @@ type Command
     | Add Path Bullet String
     | Check Path Int
     | Star Path Int
+    | Move Path Int Path
 
 
 parse : String -> Result String Command
@@ -42,6 +43,12 @@ commandParser path_ =
             |. P.keyword "star"
             |. P.spaces
             |= P.int
+        , P.succeed (Move path_)
+            |. P.keyword "move"
+            |. P.spaces
+            |= P.int
+            |. P.spaces
+            |= Path.parser
         , P.succeed (View path_)
             |. P.keyword "view"
         , P.succeed (View path_)
@@ -52,7 +59,7 @@ commandParser path_ =
 bulletParser : Parser Bullet
 bulletParser =
     P.oneOf
-        [ P.succeed (Task False) |. P.keyword "task"
+        [ P.succeed (Task Pending) |. P.keyword "task"
         , P.succeed Event |. P.keyword "event"
         , P.succeed Note |. P.keyword "note"
         ]
@@ -71,4 +78,7 @@ path command =
             Just path_
 
         Check path_ _ ->
+            Just path_
+
+        Move path_ _ _ ->
             Just path_
