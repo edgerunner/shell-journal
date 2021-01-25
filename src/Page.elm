@@ -112,6 +112,7 @@ lineToString : Line -> String
 lineToString thisLine =
     Bullet.symbol thisLine.bullet
         ++ " "
+        ++ moveDestination thisLine
         ++ thisLine.body
         ++ optionalString (" " ++ starSymbol) thisLine.star
         ++ "\n"
@@ -149,9 +150,20 @@ colorLine thisLine =
         ++ colorCode thisLine.bullet
         ++ Bullet.symbol thisLine.bullet
         ++ " "
+        ++ moveDestination thisLine
         ++ thisLine.body
         ++ optionalString yellowStar thisLine.star
         ++ styleEscape [ style.reset ]
+
+
+moveDestination : Line -> String
+moveDestination thisLine =
+    case thisLine.bullet of
+        Task (Moved destination) ->
+            "[" ++ destination ++ "] "
+
+        _ ->
+            ""
 
 
 colorCode : Bullet -> String

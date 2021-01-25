@@ -52,6 +52,7 @@ taskMovedParser =
         |= (Parser.chompUntil "]"
                 |> Parser.getChompedString
            )
+        |. Parser.symbol "]"
 
 
 parserFor : Bullet -> Parser Bullet
