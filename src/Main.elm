@@ -1,14 +1,15 @@
 port module Main exposing (main)
 
-import Bullet exposing (Bullet(..))
+import Bullet exposing (Bullet(..), TaskState(..))
 import Command exposing (Command(..))
 import Command.Path as Path exposing (Path(..))
 import FS
 import Flags exposing (Flags)
 import Json.Decode as Jd
 import Json.Encode exposing (Value)
+import Maybe exposing (Maybe)
 import Page exposing (Page)
-import Utilities exposing (Time, applySecond, handleError, splat2, splat3)
+import Utilities exposing (Time, applySecond, handleError, splat3)
 
 
 port put : String -> Cmd msg
@@ -124,15 +125,15 @@ fullPath path =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case ( Result.map (splat2 .phase .command) model, msg ) of
-        ( Ok ( GetPage, View _ ), GotPage response ) ->
+    case ( Result.map (splat3 .phase .command .time) model, msg ) of
+        ( Ok ( GetPage, View _, _ ), GotPage response ) ->
             response
                 |> decodeAndParsePage
                 |> PutPage
                 |> nextPhase model
                 |> attachCmd
 
-        ( Ok ( GetPage, Add _ bullet content ), GotPage response ) ->
+        ( Ok ( GetPage, Add _ bullet content, _ ), GotPage response ) ->
             response
                 |> decodeAndParsePage
                 |> Page.add bullet content
@@ -140,7 +141,7 @@ update msg model =
                 |> nextPhase model
                 |> attachCmd
 
-        ( Ok ( GetPage, Check _ lineNumber ), GotPage response ) ->
+        ( Ok ( GetPage, Check _ lineNumber, _ ), GotPage response ) ->
             response
                 |> decodeAndParsePage
                 |> Page.check lineNumber
@@ -148,7 +149,7 @@ update msg model =
                 |> nextPhase model
                 |> attachCmd
 
-        ( Ok ( GetPage, Star _ lineNumber ), GotPage response ) ->
+        ( Ok ( GetPage, Star _ lineNumber, _ ), GotPage response ) ->
             response
                 |> decodeAndParsePage
                 |> Page.star lineNumber
@@ -156,24 +157,55 @@ update msg model =
                 |> nextPhase model
                 |> attachCmd
 
-        ( Ok ( GetPage, Add _ bullet content ), FSError _ ) ->
+        ( Ok ( GetPage, Move _ lineNumber destination, time ), GotPage response ) ->
+            response
+                |> decodeAndParsePage
+                |> Page.move (Path.toString time destination) lineNumber
+                |> SavePage
+                |> nextPhase model
+                |> attachCmd
+
+        ( Ok ( SavePage page, Move _ lineNumber destination, time ), SavedPage ) ->
+            let
+                sourceBody =
+                    Page.get lineNumber page
+                        |> Maybe.map .body
+                        |> Maybe.withDefault ""
+
+                ( _, putSourceCmd ) =
+                    page
+                        |> PutPage
+                        |> nextPhase model
+                        |> attachCmd
+
+                ( nextModel, addDestinationCmd ) =
+                    { time = time
+                    , command = Add destination (Task Pending) sourceBody
+                    , phase = GetPage
+                    }
+                        |> Ok
+                        |> attachCmd
+            in
+            ( nextModel, Cmd.batch [ addDestinationCmd, putSourceCmd ] )
+
+        ( Ok ( GetPage, Add _ bullet content, _ ), FSError _ ) ->
             Page.blank
                 |> Page.add bullet content
                 |> SavePage
                 |> nextPhase model
                 |> attachCmd
 
-        ( Ok ( GetPage, _ ), FSError _ ) ->
+        ( Ok ( GetPage, _, _ ), FSError _ ) ->
             Err "Could not get that page"
                 |> attachCmd
 
-        ( Ok ( SavePage page, _ ), SavedPage ) ->
+        ( Ok ( SavePage page, _, _ ), SavedPage ) ->
             page
                 |> PutPage
                 |> nextPhase model
                 |> attachCmd
 
-        ( Ok ( SavePage _, _ ), FSError _ ) ->
+        ( Ok ( SavePage _, _, _ ), FSError _ ) ->
             Err "Could not save that page"
                 |> attachCmd
 

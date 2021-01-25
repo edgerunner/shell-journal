@@ -1,4 +1,4 @@
-module Page exposing (Line, Page, add, blank, check, clip, lineToString, parse, star, terminalOutput, toString)
+module Page exposing (Line, Page, add, blank, check, clip, get, lineToString, move, parse, star, terminalOutput, toString)
 
 import Bullet exposing (Bullet(..), TaskState(..))
 import Parser exposing ((|.), (|=), Parser)
@@ -215,6 +215,33 @@ add bullet content p =
           , lineNumber = List.length p + 1
           }
         ]
+
+
+move : String -> Int -> Page -> Page
+move destination =
+    modifyByLineNumber
+        (\line_ ->
+            case line_.bullet of
+                Task Pending ->
+                    Just { line_ | bullet = Task (Moved destination) }
+
+                _ ->
+                    Nothing
+        )
+
+
+get : Int -> Page -> Maybe Line
+get lineNumber lines =
+    case lines of
+        [] ->
+            Nothing
+
+        first :: rest ->
+            if first.lineNumber == lineNumber then
+                Just first
+
+            else
+                get lineNumber rest
 
 
 clip : Int -> Page -> Page
