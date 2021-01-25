@@ -1,6 +1,6 @@
 module Command exposing (Command(..), parse, path)
 
-import Bullet exposing (Bullet(..))
+import Bullet exposing (Bullet(..), TaskState(..))
 import Command.Path as Path exposing (Path)
 import Parser as P exposing ((|.), (|=), Parser)
 
@@ -52,7 +52,7 @@ commandParser path_ =
 bulletParser : Parser Bullet
 bulletParser =
     P.oneOf
-        [ P.succeed (Task False) |. P.keyword "task"
+        [ P.succeed (Task Pending) |. P.keyword "task"
         , P.succeed Event |. P.keyword "event"
         , P.succeed Note |. P.keyword "note"
         ]

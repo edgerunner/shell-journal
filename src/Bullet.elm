@@ -1,22 +1,31 @@
-module Bullet exposing (Bullet(..), parser, symbol)
+module Bullet exposing (Bullet(..), TaskState(..), parser, symbol)
 
-import Parser exposing ((|.), Parser)
+import Parser exposing ((|.), (|=), Parser)
 
 
 type Bullet
-    = Task Bool
+    = Task TaskState
     | Event
     | Note
+
+
+type TaskState
+    = Pending
+    | Done
+    | Moved String
 
 
 symbol : Bullet -> String
 symbol bullet =
     case bullet of
-        Task False ->
+        Task Pending ->
             "·"
 
-        Task True ->
+        Task Done ->
             "╳"
+
+        Task (Moved _) ->
+            ">"
 
         Event ->
             "○"
@@ -27,8 +36,22 @@ symbol bullet =
 
 parser : Parser Bullet
 parser =
-    Parser.oneOf (List.map parserFor [ Task True, Task False, Event, Note ])
+    ([ Task Pending, Task Done, Event, Note ]
+        |> List.map parserFor
+        |> (::) taskMovedParser
+        |> Parser.oneOf
+    )
         |. Parser.spaces
+
+
+taskMovedParser : Parser Bullet
+taskMovedParser =
+    Parser.succeed (Task << Moved)
+        |. Parser.symbol (symbol <| Task <| Moved "")
+        |. Parser.symbol " ["
+        |= (Parser.chompUntil "]"
+                |> Parser.getChompedString
+           )
 
 
 parserFor : Bullet -> Parser Bullet

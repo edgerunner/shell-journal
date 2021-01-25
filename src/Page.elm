@@ -1,6 +1,6 @@
 module Page exposing (Line, Page, add, blank, check, clip, lineToString, parse, star, terminalOutput, toString)
 
-import Bullet exposing (Bullet(..))
+import Bullet exposing (Bullet(..), TaskState(..))
 import Parser exposing ((|.), (|=), Parser)
 import Utilities exposing (only, optionalString)
 
@@ -72,8 +72,8 @@ starSymbol =
 
 check : Int -> Page -> Page
 check =
-    only (.bullet >> (==) (Task False))
-        >> Maybe.map (\l -> { l | bullet = Task True })
+    only (.bullet >> (==) (Task Pending))
+        >> Maybe.map (\l -> { l | bullet = Task Done })
         |> modifyByLineNumber
 
 
@@ -157,11 +157,14 @@ colorLine thisLine =
 colorCode : Bullet -> String
 colorCode bullet =
     case bullet of
-        Task False ->
+        Task Pending ->
             styleEscape [ style.default ]
 
-        Task True ->
+        Task Done ->
             styleEscape [ style.dim ]
+
+        Task (Moved _) ->
+            styleEscape [ style.green ]
 
         Event ->
             styleEscape [ style.white ]
@@ -178,7 +181,7 @@ yellowStar =
         ++ styleEscape [ style.reset ]
 
 
-style : { reset : String, bold : String, dim : String, italic : String, default : String, white : String, blue : String, black : String, brightYellow : String }
+style : { reset : String, bold : String, dim : String, italic : String, default : String, white : String, green : String, blue : String, black : String, brightYellow : String }
 style =
     { reset = "0"
     , bold = "1"
@@ -187,6 +190,7 @@ style =
     , default = "39"
     , white = "37"
     , blue = "34"
+    , green = "32"
     , black = "30"
     , brightYellow = "93"
     }
