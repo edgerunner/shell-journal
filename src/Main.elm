@@ -7,7 +7,6 @@ import FS
 import Flags exposing (Flags)
 import Json.Decode as Jd
 import Json.Encode exposing (Value)
-import Maybe exposing (Maybe)
 import Page exposing (Page)
 import Utilities exposing (Time, applySecond, handleError, splat3)
 
@@ -70,13 +69,14 @@ attachCmd model =
             Ok ( GetPage, command, time ) ->
                 command
                     |> Command.path
-                    |> Maybe.map (Path.toString time >> fullPath >> FS.read)
-                    |> Maybe.withDefault Cmd.none
+                    |> Path.toString time
+                    |> fullPath
+                    |> FS.read
 
             Ok ( PutPage page, View path, _ ) ->
                 Cmd.batch
                     [ put <| Page.terminalOutput page
-                    , put <| title (Just (Path.toTitle path))
+                    , put <| title (Path.toTitle path)
                     ]
 
             Ok ( PutPage page, command, _ ) ->
@@ -87,7 +87,7 @@ attachCmd model =
                     |> List.singleton
                     |> (::)
                         (Command.path command
-                            |> Maybe.map Path.toTitle
+                            |> Path.toTitle
                             |> title
                             |> put
                         )
@@ -97,10 +97,7 @@ attachCmd model =
             Ok ( SavePage page, command, time ) ->
                 ( command, page )
                     |> Tuple.mapFirst Command.path
-                    |> Tuple.mapFirst (Maybe.map (Path.toString time))
-                    |> Tuple.mapFirst (Maybe.map fullPath)
-                    |> Tuple.mapFirst (Maybe.map FS.write)
-                    |> Tuple.mapFirst (Maybe.withDefault (always Cmd.none))
+                    |> Tuple.mapFirst (Path.toString time >> fullPath >> FS.write)
                     |> Tuple.mapSecond Page.toString
                     |> applySecond
 
@@ -108,14 +105,9 @@ attachCmd model =
                 put error
 
 
-title : Maybe String -> String
+title : String -> String
 title path =
-    case path of
-        Just p ->
-            "\n Shell Journal — \u{001B}[36m" ++ p ++ "\u{001B}[0m"
-
-        Nothing ->
-            "\n Shell Journal"
+    "\n Shell Journal — \u{001B}[36m" ++ path ++ "\u{001B}[0m"
 
 
 fullPath : String -> String

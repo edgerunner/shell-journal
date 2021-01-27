@@ -65,20 +65,20 @@ bulletParser =
         ]
 
 
-path : Command -> Maybe Path
+path : Command -> Path
 path command =
     case command of
         View path_ ->
-            Just path_
+            path_
 
         Add path_ _ _ ->
-            Just path_
+            path_
 
         Star path_ _ ->
-            Just path_
+            path_
 
         Check path_ _ ->
-            Just path_
+            path_
 
         Move path_ _ _ ->
-            Just path_
+            path_
