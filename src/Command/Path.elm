@@ -1,4 +1,4 @@
-module Command.Path exposing (Path(..), parser, toString)
+module Command.Path exposing (Path(..), parser, toString, toTitle)
 
 import Parser as P exposing ((|.), (|=), Parser)
 import Set
@@ -422,3 +422,156 @@ shift offset ( posix, zone ) keyword =
 
         KwWeekday weekday ->
             add <| weekdayInterval weekday
+
+
+toTitle : Path -> String
+toTitle path =
+    case path of
+        Tag tag ->
+            "# " ++ tag
+
+        RelativeDate keyword ->
+            case keyword of
+                This KwDay ->
+                    "Today"
+
+                Next KwDay ->
+                    "Tomorrow"
+
+                Last KwDay ->
+                    "Yesterday"
+
+                This kw ->
+                    "This " ++ dateBlockToTitle kw
+
+                Next kw ->
+                    "Next " ++ dateBlockToTitle kw
+
+                Last kw ->
+                    "Last " ++ dateBlockToTitle kw
+
+        Date maybeYear date ->
+            (case date of
+                Day month day ->
+                    monthToTitle month ++ " " ++ String.fromInt day
+
+                Week week ->
+                    "Week " ++ String.fromInt week
+
+                Month month ->
+                    monthToTitle month
+
+                Quarter quarter ->
+                    case quarter of
+                        1 ->
+                            "First quarter"
+
+                        2 ->
+                            "Second quarter"
+
+                        3 ->
+                            "Third quarter"
+
+                        4 ->
+                            "Fourth quarter"
+
+                        _ ->
+                            "⚠️"
+
+                Year ->
+                    ""
+            )
+                ++ (case maybeYear of
+                        Just year ->
+                            " " ++ String.fromInt year
+
+                        Nothing ->
+                            ""
+                   )
+
+
+monthToTitle : Time.Month -> String
+monthToTitle month =
+    case month of
+        Time.Jan ->
+            "January"
+
+        Time.Feb ->
+            "February"
+
+        Time.Mar ->
+            "March"
+
+        Time.Apr ->
+            "April"
+
+        Time.May ->
+            "May"
+
+        Time.Jun ->
+            "June"
+
+        Time.Jul ->
+            "July"
+
+        Time.Aug ->
+            "August"
+
+        Time.Sep ->
+            "September"
+
+        Time.Oct ->
+            "October"
+
+        Time.Nov ->
+            "November"
+
+        Time.Dec ->
+            "December"
+
+
+dateBlockToTitle : DateBlockKeyword -> String
+dateBlockToTitle rdkw =
+    case rdkw of
+        KwDay ->
+            "day"
+
+        KwWeek ->
+            "week"
+
+        KwMonth ->
+            "month"
+
+        KwQuarter ->
+            "quarter"
+
+        KwYear ->
+            "year"
+
+        KwWeekday weekday ->
+            weekdayToTitle weekday
+
+
+weekdayToTitle : Time.Weekday -> String
+weekdayToTitle weekday =
+    case weekday of
+        Time.Mon ->
+            "Monday"
+
+        Time.Tue ->
+            "Tuesday"
+
+        Time.Wed ->
+            "Wednesday"
+
+        Time.Thu ->
+            "Thursday"
+
+        Time.Fri ->
+            "Friday"
+
+        Time.Sat ->
+            "Saturday"
+
+        Time.Sun ->
+            "Sunday"

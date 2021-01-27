@@ -73,13 +73,13 @@ attachCmd model =
                     |> Maybe.map (Path.toString time >> fullPath >> FS.read)
                     |> Maybe.withDefault Cmd.none
 
-            Ok ( PutPage page, View path, time ) ->
+            Ok ( PutPage page, View path, _ ) ->
                 Cmd.batch
                     [ put <| Page.terminalOutput page
-                    , put <| title (Just (Path.toString time path))
+                    , put <| title (Just (Path.toTitle path))
                     ]
 
-            Ok ( PutPage page, command, time ) ->
+            Ok ( PutPage page, command, _ ) ->
                 page
                     |> Page.clip 2
                     |> Page.terminalOutput
@@ -87,7 +87,7 @@ attachCmd model =
                     |> List.singleton
                     |> (::)
                         (Command.path command
-                            |> Maybe.map (Path.toString time)
+                            |> Maybe.map Path.toTitle
                             |> title
                             |> put
                         )
@@ -112,7 +112,7 @@ title : Maybe String -> String
 title path =
     case path of
         Just p ->
-            "\n Shell Journal — " ++ p
+            "\n Shell Journal — \u{001B}[36m" ++ p ++ "\u{001B}[0m"
 
         Nothing ->
             "\n Shell Journal"
