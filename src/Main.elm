@@ -32,9 +32,9 @@ type alias ModelRecord =
 
 
 type Msg
-    = GotPage Value
+    = GotPage Page
     | SavedPage
-    | FSError Value
+    | Error String
 
 
 main : Program Flags Model Msg
@@ -102,7 +102,7 @@ attachCmd model =
                     |> applySecond
 
             Err error ->
-                put error
+                put ("\u{001B}[31m" ++ error ++ "\u{001B}[0m")
 
 
 title : String -> String
@@ -118,40 +118,35 @@ fullPath path =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( Result.map (splat3 .phase .command .time) model, msg ) of
-        ( Ok ( GetPage, View _, _ ), GotPage response ) ->
-            response
-                |> decodeAndParsePage
+        ( Ok ( GetPage, View _, _ ), GotPage page ) ->
+            page
                 |> PutPage
                 |> nextPhase model
                 |> attachCmd
 
-        ( Ok ( GetPage, Add _ bullet content, _ ), GotPage response ) ->
-            response
-                |> decodeAndParsePage
+        ( Ok ( GetPage, Add _ bullet content, _ ), GotPage page ) ->
+            page
                 |> Page.add bullet content
                 |> SavePage
                 |> nextPhase model
                 |> attachCmd
 
-        ( Ok ( GetPage, Check _ lineNumber, _ ), GotPage response ) ->
-            response
-                |> decodeAndParsePage
+        ( Ok ( GetPage, Check _ lineNumber, _ ), GotPage page ) ->
+            page
                 |> Page.check lineNumber
                 |> SavePage
                 |> nextPhase model
                 |> attachCmd
 
-        ( Ok ( GetPage, Star _ lineNumber, _ ), GotPage response ) ->
-            response
-                |> decodeAndParsePage
+        ( Ok ( GetPage, Star _ lineNumber, _ ), GotPage page ) ->
+            page
                 |> Page.star lineNumber
                 |> SavePage
                 |> nextPhase model
                 |> attachCmd
 
-        ( Ok ( GetPage, Move _ lineNumber destination, time ), GotPage response ) ->
-            response
-                |> decodeAndParsePage
+        ( Ok ( GetPage, Move _ lineNumber destination, time ), GotPage page ) ->
+            page
                 |> Page.move (Path.toString time destination) lineNumber
                 |> SavePage
                 |> nextPhase model
@@ -180,15 +175,11 @@ update msg model =
             in
             ( nextModel, Cmd.batch [ addDestinationCmd, putSourceCmd ] )
 
-        ( Ok ( GetPage, Add _ bullet content, _ ), FSError _ ) ->
+        ( Ok ( GetPage, Add _ bullet content, _ ), Error _ ) ->
             Page.blank
                 |> Page.add bullet content
                 |> SavePage
                 |> nextPhase model
-                |> attachCmd
-
-        ( Ok ( GetPage, _, _ ), FSError _ ) ->
-            Err "Could not get that page"
                 |> attachCmd
 
         ( Ok ( SavePage page, _, _ ), SavedPage ) ->
@@ -197,8 +188,8 @@ update msg model =
                 |> nextPhase model
                 |> attachCmd
 
-        ( Ok ( SavePage _, _, _ ), FSError _ ) ->
-            Err "Could not save that page"
+        ( Ok _, Error error ) ->
+            Err error
                 |> attachCmd
 
         _ ->
@@ -211,13 +202,19 @@ nextPhase model phase =
     Result.map (\rec -> { rec | phase = phase }) model
 
 
-decodeAndParsePage : Value -> Page
+decodeAndParsePage : Value -> Msg
 decodeAndParsePage response =
     response
         |> Jd.decodeValue Jd.string
-        |> Result.withDefault "Parse error"
-        |> Page.parse
-        |> Result.withDefault []
+        |> errorMsg "Error decoding page"
+        |> Result.andThen (Page.parse >> errorMsg "Error parsing page")
+        |> Result.map GotPage
+        |> handleError identity
+
+
+errorMsg : String -> Result e a -> Result Msg a
+errorMsg error =
+    Result.mapError (always (Error error))
 
 
 subscriptions : Model -> Sub Msg
@@ -226,10 +223,10 @@ subscriptions model =
         Ok rec ->
             case rec.phase of
                 GetPage ->
-                    FS.subscription (resultToMsg GotPage)
+                    FS.subscription (responseToMsg "Failed to get that page" decodeAndParsePage)
 
                 SavePage _ ->
-                    FS.subscription (resultToMsg (always SavedPage))
+                    FS.subscription (responseToMsg "Failed to save page" (always SavedPage))
 
                 PutPage _ ->
                     Sub.none
@@ -238,7 +235,8 @@ subscriptions model =
             Sub.none
 
 
-resultToMsg : (Value -> Msg) -> Result Value Value -> Msg
-resultToMsg constructor =
+responseToMsg : String -> (Value -> Msg) -> Result Value Value -> Msg
+responseToMsg error constructor =
     Result.map constructor
-        >> handleError FSError
+        >> errorMsg error
+        >> handleError identity
