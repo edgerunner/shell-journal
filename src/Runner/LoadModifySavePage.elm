@@ -1,8 +1,8 @@
 module Runner.LoadModifySavePage exposing (init, step1, step2)
 
-import Command.Path as Path exposing (Path)
+import Command.Path exposing (Path)
 import Page exposing (Page)
-import Runner exposing (Msg, Update(..), handlePageLoad, handlePageSave, loadPageThen, put, savePageThen)
+import Runner exposing (Msg, Update(..), handlePageLoad, handlePageSave, loadPageThen, savePageThen)
 import Utilities exposing (Time)
 
 
@@ -27,8 +27,5 @@ step2 : Path -> Page -> Msg -> ( Update, Cmd Msg )
 step2 path page =
     handlePageSave
         ( Done
-        , Cmd.batch
-            [ put <| Path.toTitle path
-            , put <| Page.terminalOutput <| Page.clip 2 page
-            ]
+        , Runner.putPage path (Page.clip 2 page)
         )

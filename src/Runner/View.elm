@@ -1,7 +1,6 @@
 module Runner.View exposing (init)
 
-import Command.Path as Path exposing (Path)
-import Page
+import Command.Path exposing (Path)
 import Runner exposing (Msg, Update(..))
 import Utilities exposing (Time)
 
@@ -14,11 +13,4 @@ init time path =
 pendingPageLoad : Path -> Msg -> ( Update, Cmd Msg )
 pendingPageLoad path =
     Runner.handlePageLoad
-        (\page ->
-            ( Done
-            , Cmd.batch
-                [ Runner.put <| Path.toTitle path
-                , Runner.put <| Page.terminalOutput page
-                ]
-            )
-        )
+        (Runner.putPage path >> Tuple.pair Done)

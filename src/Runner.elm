@@ -1,4 +1,4 @@
-port module Runner exposing (Error(..), Msg, Success(..), Update(..), handlePageLoad, handlePageSave, loadPageThen, loadPath, onPageLoad, put, savePageThen)
+port module Runner exposing (Error(..), Msg, Success(..), Update(..), handlePageLoad, handlePageSave, loadPageThen, loadPath, onPageLoad, put, putPage, savePageThen)
 
 import Command.Path as Path exposing (Path)
 import FS
@@ -121,3 +121,20 @@ onPageSave =
 fullPath : String -> String
 fullPath path =
     String.concat [ ".shjo/", path, ".shjo" ]
+
+
+
+-- Output helpers
+
+
+putPage : Path -> Page -> Cmd msg
+putPage path page =
+    Cmd.batch
+        [ put <| Page.terminalOutput page
+        , put <| title <| Path.toTitle path
+        ]
+
+
+title : String -> String
+title path =
+    "\n Shell Journal — \u{001B}[36m" ++ path ++ "\u{001B}[0m"
