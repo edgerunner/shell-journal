@@ -2,7 +2,7 @@ port module Runner exposing (Error(..), Msg, Success(..), Update(..), handlePage
 
 import Command.Path as Path exposing (Path)
 import FS
-import Json.Decode as Jd exposing (Value)
+import Json.Decode as Jd
 import Page exposing (Page)
 import Parser
 import Result
@@ -17,7 +17,7 @@ type alias Msg =
 
 
 type Error
-    = FilesystemError Value
+    = FilesystemError FS.Error
     | ParsingError (List Parser.DeadEnd)
     | DecodingError Jd.Error
 
@@ -88,6 +88,9 @@ handlePageSave handler msg =
 errorMessage : Error -> String
 errorMessage error =
     case error of
+        FilesystemError (FS.NotFound path) ->
+            "There isn't a file called " ++ path ++ " in the Shell Journal folder"
+
         FilesystemError _ ->
             "Could not access that file"
 

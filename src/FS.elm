@@ -1,4 +1,4 @@
-port module FS exposing (append, read, subscription, write)
+port module FS exposing (Error(..), append, read, subscription, write)
 
 import Json.Decode as Jd
 import Json.Encode as Je exposing (Value)
@@ -9,6 +9,12 @@ port fsRequest : { method : String, args : List Value } -> Cmd msg
 
 
 port fsResponse : (Value -> msg) -> Sub msg
+
+
+type Error
+    = NotFound String
+    | OtherError Value
+    | DecodingError Jd.Error
 
 
 utf8 : Value
@@ -39,20 +45,40 @@ write path string =
     request "writeFile" [ Je.string path, Je.string string ]
 
 
-subscription : (Result Value Value -> msg) -> Sub msg
+subscription : (Result Error Value -> msg) -> Sub msg
 subscription map =
     Sub.map map (fsResponse fsResult)
 
 
-fsResult : Value -> Result Value Value
+fsResult : Value -> Result Error Value
 fsResult =
     Jd.decodeValue fsResultDecoder
-        >> handleError (always <| Err Je.null)
+        >> handleError (Err << DecodingError)
 
 
-fsResultDecoder : Jd.Decoder (Result Value Value)
+fsResultDecoder : Jd.Decoder (Result Error Value)
 fsResultDecoder =
     Jd.oneOf
-        [ Jd.map Err <| Jd.field "error" Jd.value
+        [ Jd.map Err <| Jd.field "error" fsErrorDecoder
         , Jd.map Ok Jd.value
         ]
+
+
+fsErrorDecoder : Jd.Decoder Error
+fsErrorDecoder =
+    Jd.oneOf
+        [ Jd.field "code" Jd.string
+            |> Jd.andThen notFoundDecoder
+        , Jd.map OtherError Jd.value
+        ]
+
+
+notFoundDecoder : String -> Jd.Decoder Error
+notFoundDecoder code =
+    case code of
+        "ENOENT" ->
+            Jd.field "path" Jd.string
+                |> Jd.map NotFound
+
+        _ ->
+            Jd.fail ("Can't handle error " ++ code)
