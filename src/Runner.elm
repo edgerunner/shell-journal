@@ -1,4 +1,4 @@
-port module Runner exposing (Error(..), Msg, Runner, Success(..), Update(..), handlePageLoad, handlePageSave, loadPageThen, loadPath, onPageLoad, put, putPage, savePageThen)
+port module Runner exposing (Error(..), Msg, Runner, Success(..), Update(..), alsoDo, handlePageLoad, handlePageSave, loadPageThen, loadPath, log, onPageLoad, put, putPage, savePageThen)
 
 import Command.Path as Path exposing (Path)
 import FS
@@ -145,3 +145,15 @@ putPage path page =
 title : String -> String
 title path =
     "\n Shell Journal — \u{001B}[36m" ++ path ++ "\u{001B}[0m"
+
+
+alsoDo : Cmd Msg -> ( Update, Cmd Msg ) -> ( Update, Cmd Msg )
+alsoDo cmd =
+    Tuple.mapSecond List.singleton
+        >> Tuple.mapSecond ((::) cmd)
+        >> Tuple.mapSecond Cmd.batch
+
+
+log : String -> ( Update, Cmd Msg ) -> ( Update, Cmd Msg )
+log =
+    put >> alsoDo
