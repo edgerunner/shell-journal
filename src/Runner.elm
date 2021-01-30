@@ -1,4 +1,4 @@
-port module Runner exposing (Error(..), Msg, Success(..), Update(..), handlePageLoad, handlePageSave, loadPageThen, loadPath, onPageLoad, put, putPage, savePageThen)
+port module Runner exposing (Error(..), Msg, Runner, Success(..), Update(..), handlePageLoad, handlePageSave, loadPageThen, loadPath, onPageLoad, put, putPage, savePageThen)
 
 import Command.Path as Path exposing (Path)
 import FS
@@ -16,6 +16,10 @@ type alias Msg =
     Result Error Success
 
 
+type alias Runner =
+    Msg -> ( Update, Cmd Msg )
+
+
 type Error
     = FilesystemError FS.Error
     | ParsingError (List Parser.DeadEnd)
@@ -28,7 +32,7 @@ type Success
 
 
 type Update
-    = Update (Msg -> ( Update, Cmd Msg )) (Sub Msg)
+    = Update Runner (Sub Msg)
     | Done
 
 
@@ -41,16 +45,16 @@ loadPath time =
 -- Stepping helpers
 
 
-loadPageThen : Time -> Path -> (Msg -> ( Update, Cmd Msg )) -> ( Update, Cmd Msg )
+loadPageThen : Time -> Path -> Runner -> ( Update, Cmd Msg )
 loadPageThen time path thenDo =
     ( Update thenDo onPageLoad
     , loadPath time path
     )
 
 
-savePageThen : Time -> Path -> Page -> (Msg -> ( Update, Cmd Msg )) -> ( Update, Cmd Msg )
-savePageThen time path page thenDo =
-    ( Update thenDo onPageSave
+savePageThen : Time -> Path -> Page -> Runner -> ( Update, Cmd Msg )
+savePageThen time path page runner =
+    ( Update runner onPageSave
     , FS.write (Path.toString time path |> fullPath) (Page.toString page)
     )
 
@@ -59,7 +63,7 @@ savePageThen time path page thenDo =
 -- Response unwrappers
 
 
-handlePageLoad : (Page -> ( Update, Cmd Msg )) -> Msg -> ( Update, Cmd Msg )
+handlePageLoad : (Page -> ( Update, Cmd Msg )) -> Runner
 handlePageLoad handler msg =
     case msg of
         Ok (LoadedPage page) ->
@@ -72,7 +76,7 @@ handlePageLoad handler msg =
             ( Done, put "Invalid state. This is a bug!" )
 
 
-handlePageSave : ( Update, Cmd Msg ) -> Msg -> ( Update, Cmd Msg )
+handlePageSave : ( Update, Cmd Msg ) -> Runner
 handlePageSave handler msg =
     case msg of
         Ok SavedPage ->

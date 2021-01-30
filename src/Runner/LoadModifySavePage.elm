@@ -2,7 +2,7 @@ module Runner.LoadModifySavePage exposing (init, step1, step2)
 
 import Command.Path exposing (Path)
 import Page exposing (Page)
-import Runner exposing (Msg, Update(..), handlePageLoad, handlePageSave, loadPageThen, savePageThen)
+import Runner exposing (Msg, Runner, Update(..), handlePageLoad, handlePageSave, loadPageThen, savePageThen)
 import Utilities exposing (Time)
 
 
@@ -11,7 +11,7 @@ init time path modify =
     loadPageThen time path (step1 time path modify)
 
 
-step1 : Time -> Path -> (Page -> Page) -> Msg -> ( Update, Cmd Msg )
+step1 : Time -> Path -> (Page -> Page) -> Runner
 step1 time path modify =
     handlePageLoad
         (\page ->
@@ -23,7 +23,7 @@ step1 time path modify =
         )
 
 
-step2 : Path -> Page -> Msg -> ( Update, Cmd Msg )
+step2 : Path -> Page -> Runner
 step2 path page =
     handlePageSave
         ( Done

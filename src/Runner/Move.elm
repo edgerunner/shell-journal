@@ -4,7 +4,7 @@ import Command
 import Command.Path as Path exposing (Path)
 import Page exposing (Page)
 import Platform.Cmd exposing (Cmd)
-import Runner exposing (Msg, Update(..))
+import Runner exposing (Msg, Runner, Update(..))
 import Utilities exposing (Time)
 
 
@@ -15,7 +15,7 @@ init time sourcePath lineNumber destinationPath =
         (step1 time sourcePath lineNumber destinationPath)
 
 
-step1 : Time -> Path -> Int -> Path -> Msg -> ( Update, Cmd Msg )
+step1 : Time -> Path -> Int -> Path -> Runner
 step1 time sourcePath lineNumber destinationPath =
     Runner.handlePageLoad <|
         (Runner.loadPageThen time destinationPath
@@ -23,7 +23,7 @@ step1 time sourcePath lineNumber destinationPath =
         )
 
 
-step2 : Time -> Path -> Int -> Path -> Page -> Msg -> ( Update, Cmd Msg )
+step2 : Time -> Path -> Int -> Path -> Page -> Runner
 step2 time sourcePath lineNumber destinationPath sourcePage =
     Runner.handlePageLoad <|
         \destinationPage ->
@@ -53,14 +53,14 @@ step2 time sourcePath lineNumber destinationPath sourcePage =
                         step3 time sourcePath modifiedSource destinationPath modifiedDestination
 
 
-step3 : Time -> Path -> Page -> Path -> Page -> Msg -> ( Update, Cmd Msg )
+step3 : Time -> Path -> Page -> Path -> Page -> Runner
 step3 time sourcePath modifiedSource destinationPath modifiedDestination =
     Runner.handlePageSave <|
         Runner.savePageThen time sourcePath modifiedSource <|
             step4 sourcePath modifiedSource destinationPath modifiedDestination
 
 
-step4 : Path -> Page -> Path -> Page -> Msg -> ( Update, Cmd Msg )
+step4 : Path -> Page -> Path -> Page -> Runner
 step4 sourcePath modifiedSource destinationPath modifiedDestination =
     Runner.handlePageSave
         ( Done
