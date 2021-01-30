@@ -159,8 +159,8 @@ colorLine thisLine =
 moveDestination : Line -> String
 moveDestination thisLine =
     case thisLine.bullet of
-        Task (Moved destination) ->
-            "[" ++ destination ++ "] "
+        Task (Moved destination lineNumber) ->
+            "[" ++ destination ++ ":" ++ String.fromInt lineNumber ++ "] "
 
         _ ->
             ""
@@ -175,7 +175,7 @@ colorCode bullet =
         Task Done ->
             styleEscape [ style.dim ]
 
-        Task (Moved _) ->
+        Task (Moved _ _) ->
             styleEscape [ style.green ]
 
         Event ->
@@ -229,13 +229,13 @@ add bullet content p =
         ]
 
 
-move : String -> Int -> Page -> Page
-move destination =
+move : String -> Int -> Int -> Page -> Page
+move destination destinationLineNumber =
     modifyByLineNumber
         (\line_ ->
             case line_.bullet of
                 Task Pending ->
-                    Just { line_ | bullet = Task (Moved destination) }
+                    Just { line_ | bullet = Task (Moved destination destinationLineNumber) }
 
                 _ ->
                     Nothing

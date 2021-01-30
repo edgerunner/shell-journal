@@ -12,7 +12,7 @@ type Bullet
 type TaskState
     = Pending
     | Done
-    | Moved String
+    | Moved String Int
 
 
 symbol : Bullet -> String
@@ -24,7 +24,7 @@ symbol bullet =
         Task Done ->
             "╳"
 
-        Task (Moved _) ->
+        Task (Moved _ _) ->
             ">"
 
         Event ->
@@ -46,13 +46,16 @@ parser =
 
 taskMovedParser : Parser Bullet
 taskMovedParser =
-    Parser.succeed (Task << Moved)
-        |. Parser.symbol (symbol <| Task <| Moved "")
+    Parser.succeed Moved
+        |. Parser.symbol (symbol <| Task <| Moved "" 0)
         |. Parser.symbol " ["
-        |= (Parser.chompUntil "]"
+        |= (Parser.chompUntil ":"
                 |> Parser.getChompedString
            )
+        |. Parser.symbol ":"
+        |= Parser.int
         |. Parser.symbol "]"
+        |> Parser.map Task
 
 
 parserFor : Bullet -> Parser Bullet

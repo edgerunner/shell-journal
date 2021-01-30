@@ -1,11 +1,10 @@
 module Runner.Move exposing (init)
 
-import Bullet exposing (Bullet)
 import Command
 import Command.Path as Path exposing (Path)
-import Page
+import Page exposing (Page)
+import Platform.Cmd exposing (Cmd)
 import Runner exposing (Msg, Update(..))
-import Runner.LoadModifySavePage as LMSP
 import Utilities exposing (Time)
 
 
@@ -13,30 +12,60 @@ init : Time -> Path -> Int -> Path -> ( Update, Cmd Msg )
 init time sourcePath lineNumber destinationPath =
     Runner.loadPageThen time
         sourcePath
-        (step1 sourcePath time lineNumber destinationPath)
+        (step1 time sourcePath lineNumber destinationPath)
 
 
-step1 : Path -> Time -> Int -> Path -> Msg -> ( Update, Cmd Msg )
-step1 sourcePath time lineNumber destinationPath =
-    Runner.handlePageLoad
-        (\page ->
-            let
-                maybeLine =
-                    Page.get lineNumber page
-
-                updatedPage =
-                    Page.move (Path.toString time destinationPath) lineNumber page
-            in
-            case maybeLine of
-                Just line ->
-                    Runner.savePageThen time sourcePath updatedPage (step2 time destinationPath line.bullet line.body)
-
-                Nothing ->
-                    ( Done, Runner.put "That line number does not exist in the source page" )
+step1 : Time -> Path -> Int -> Path -> Msg -> ( Update, Cmd Msg )
+step1 time sourcePath lineNumber destinationPath =
+    Runner.handlePageLoad <|
+        (Runner.loadPageThen time destinationPath
+            << step2 time sourcePath lineNumber destinationPath
         )
 
 
-step2 : Time -> Path -> Bullet -> String -> Msg -> ( Update, Cmd Msg )
-step2 time destinationPath bullet body =
+step2 : Time -> Path -> Int -> Path -> Page -> Msg -> ( Update, Cmd Msg )
+step2 time sourcePath lineNumber destinationPath sourcePage =
+    Runner.handlePageLoad <|
+        \destinationPage ->
+            case Page.get lineNumber sourcePage of
+                Nothing ->
+                    ( Done, Runner.put "That line doesn't exist" )
+
+                Just sourceLine ->
+                    let
+                        modifiedDestination =
+                            Page.add sourceLine.bullet sourceLine.body destinationPage
+
+                        destinationLineNumber =
+                            List.length modifiedDestination
+
+                        destinationPathString =
+                            Path.toString time destinationPath
+
+                        modifiedSource =
+                            Page.move
+                                destinationPathString
+                                destinationLineNumber
+                                lineNumber
+                                sourcePage
+                    in
+                    Runner.savePageThen time destinationPath modifiedDestination <|
+                        step3 time sourcePath modifiedSource destinationPath modifiedDestination
+
+
+step3 : Time -> Path -> Page -> Path -> Page -> Msg -> ( Update, Cmd Msg )
+step3 time sourcePath modifiedSource destinationPath modifiedDestination =
     Runner.handlePageSave <|
-        LMSP.init time destinationPath (Page.add bullet body)
+        Runner.savePageThen time sourcePath modifiedSource <|
+            step4 sourcePath modifiedSource destinationPath modifiedDestination
+
+
+step4 : Path -> Page -> Path -> Page -> Msg -> ( Update, Cmd Msg )
+step4 sourcePath modifiedSource destinationPath modifiedDestination =
+    Runner.handlePageSave
+        ( Done
+        , Cmd.batch
+            [ Runner.putPage destinationPath <| Page.clip 2 modifiedDestination
+            , Runner.putPage sourcePath <| Page.clip 1 modifiedSource
+            ]
+        )
