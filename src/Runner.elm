@@ -1,4 +1,24 @@
-port module Runner exposing (Msg, Runner, Update, alsoDo, done, handlePageLoad, handlePageNotFound, handlePageSave, loadPageThen, loadPath, log, onPageLoad, put, putPage, run, savePageThen, subscriptions, update)
+port module Runner exposing
+    ( Msg
+    , Runner
+    , Update
+    , alsoDo
+    , done
+    , handlePageLoad
+    , handlePageNotFound
+    , handlePageSave
+    , loadPageThen
+    , loadPath
+    , log
+    , logError
+    , onPageLoad
+    , put
+    , putPage
+    , run
+    , savePageThen
+    , subscriptions
+    , update
+    )
 
 import Command.Path as Path exposing (Path)
 import FS
@@ -97,10 +117,12 @@ run : Runner
 run msg =
     case msg of
         Err error ->
-            ( Done, put <| errorMessage error )
+            done Cmd.none
+                |> logError (errorMessage error)
 
         Ok _ ->
-            ( Done, put "Invalid state. This is a bug!" )
+            done Cmd.none
+                |> logError "Invalid state. This is a bug!"
 
 
 errorMessage : Error -> String
@@ -171,6 +193,14 @@ alsoDo cmd =
 log : String -> ( Update, Cmd Msg ) -> ( Update, Cmd Msg )
 log =
     put >> alsoDo
+
+
+logError : String -> ( Update, Cmd Msg ) -> ( Update, Cmd Msg )
+logError =
+    String.append "\n\u{001B}[31m"
+        >> String.append
+        >> (|>) "\u{001B}[0m"
+        >> log
 
 
 done : Cmd Msg -> ( Update, Cmd Msg )

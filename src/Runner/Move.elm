@@ -31,7 +31,16 @@ step2 time sourcePath lineNumber destinationPath sourcePage =
             (\destinationPage ->
                 case Page.get lineNumber sourcePage of
                     Nothing ->
-                        Runner.done <| Runner.put "That line doesn't exist"
+                        Runner.putPage sourcePath sourcePage
+                            |> Runner.done
+                            |> (String.concat
+                                    [ "Line number \u{001B}[1m"
+                                    , String.fromInt lineNumber
+                                    , "\u{001B}[22m is not in the page for \u{001B}[1m"
+                                    , Path.toTitle sourcePath
+                                    ]
+                                    |> Runner.logError
+                               )
 
                     Just sourceLine ->
                         let
