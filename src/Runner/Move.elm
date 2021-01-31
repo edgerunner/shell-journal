@@ -53,15 +53,43 @@ step2 time sourcePath lineNumber destinationPath sourcePage =
                             destinationPathString =
                                 Path.toString time destinationPath
 
-                            modifiedSource =
+                            modifiedSourceResult =
                                 Page.move
                                     destinationPathString
                                     destinationLineNumber
                                     lineNumber
                                     sourcePage
+
+                            errorHandler error =
+                                Runner.done Cmd.none
+                                    |> Runner.logError
+                                        (case error of
+                                            Page.LineNotFound _ ->
+                                                String.concat
+                                                    [ "Line number \u{001B}[1m"
+                                                    , String.fromInt lineNumber
+                                                    , "\u{001B}[22m is not in the page for \u{001B}[1m"
+                                                    , Path.toTitle sourcePath
+                                                    , "\u{001B}[0m"
+                                                    ]
+
+                                            Page.InvalidOperation errorMessage ->
+                                                String.concat
+                                                    [ "Invalid operation on \u{001B}[1m"
+                                                    , Path.toTitle sourcePath
+                                                    , "\u{001B}[22m: "
+                                                    , errorMessage
+                                                    , "\u{001B}[1m"
+                                                    ]
+                                        )
+
+                            mappedResult modifiedSource =
+                                Runner.savePageThen time destinationPath modifiedDestination <|
+                                    step3 time sourcePath modifiedSource destinationPath modifiedDestination
                         in
-                        Runner.savePageThen time destinationPath modifiedDestination <|
-                            step3 time sourcePath modifiedSource destinationPath modifiedDestination
+                        modifiedSourceResult
+                            |> Result.map mappedResult
+                            |> Utilities.handleError errorHandler
             )
 
 

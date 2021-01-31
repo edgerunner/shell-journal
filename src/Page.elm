@@ -1,4 +1,4 @@
-module Page exposing (Line, Page, add, blank, check, clip, get, lineToString, move, parse, star, terminalOutput, toString)
+module Page exposing (Line, LineError(..), Page, add, blank, check, clip, get, lineToString, move, parse, star, terminalOutput, toString)
 
 import Bullet exposing (Bullet(..), TaskState(..))
 import Parser exposing ((|.), (|=), Parser)
@@ -70,31 +70,45 @@ starSymbol =
     "★"
 
 
-check : Int -> Page -> Page
+check : Int -> Page -> Result LineError Page
 check =
     only (.bullet >> (==) (Task Pending))
         >> Maybe.map (\l -> { l | bullet = Task Done })
+        >> Result.fromMaybe (InvalidOperation "It doesn't make sense to check a line that isn't a pending task")
         |> modifyByLineNumber
 
 
-star : Int -> Page -> Page
+star : Int -> Page -> Result LineError Page
 star =
     only (not << .star)
         >> Maybe.map (\l -> { l | star = True })
+        >> Result.fromMaybe (InvalidOperation "That line is already starred")
         |> modifyByLineNumber
 
 
-modifyByLineNumber : (Line -> Maybe Line) -> Int -> Page -> Page
-modifyByLineNumber modify lineNumber =
-    List.map
-        (\thisLine ->
-            if lineNumber == thisLine.lineNumber then
-                modify { thisLine | highlight = True }
-                    |> Maybe.withDefault thisLine
+type LineError
+    = LineNotFound Int
+    | InvalidOperation String
+
+
+modifyByLineNumber : (Line -> Result LineError Line) -> Int -> Page -> Result LineError Page
+modifyByLineNumber modify lineNumber page_ =
+    case page_ of
+        [] ->
+            Err <| LineNotFound lineNumber
+
+        line_ :: rest ->
+            if lineNumber == line_.lineNumber then
+                modify { line_ | highlight = True }
+                    |> Result.andThen
+                        ((::)
+                            >> (|>) rest
+                            >> modifyByLineNumber modify lineNumber
+                        )
 
             else
-                thisLine
-        )
+                modifyByLineNumber modify lineNumber rest
+                    |> Result.map ((::) line_)
 
 
 blank : Page
@@ -229,16 +243,16 @@ add bullet content p =
         ]
 
 
-move : String -> Int -> Int -> Page -> Page
+move : String -> Int -> Int -> Page -> Result LineError Page
 move destination destinationLineNumber =
     modifyByLineNumber
         (\line_ ->
             case line_.bullet of
                 Task Pending ->
-                    Just { line_ | bullet = Task (Moved destination destinationLineNumber) }
+                    Ok { line_ | bullet = Task (Moved destination destinationLineNumber) }
 
                 _ ->
-                    Nothing
+                    Err <| InvalidOperation "I only move pending tasks. Sorry."
         )
 
 
