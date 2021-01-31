@@ -1,0 +1,24 @@
+{
+  "name": "shell-journal",
+  "version": "0.1.0",
+  "description": "A shell-based take on the Bullet Journal method",
+  "main": "src/cli.js",
+  "repository": "git@github.com:edgerunner/shell-journal.git",
+  "author": "Mert Torun <mert@merttorun.com>",
+  "license": "MIT",
+  "bin": {
+    "sj": "./bin/sj"
+  },
+  "files": [
+    "./bin/*",
+    "./src/cli.js",
+    "./runtime/*"
+  ],
+  "scripts": {
+    "dev": "elm make src/Main.elm --output=runtime/main.js && node src/cli.js $*",
+    "build": "elm make src/Main.elm --optimize --output=runtime/main.js"
+  },
+  "devDependencies": {
+    "elm": "^0.19.1"
+  }
+}

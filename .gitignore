@@ -4,3 +4,5 @@ elm-stuff
 repl-temp-*
 # elm-built 
 runtime
+# node/npm
+node_modules
