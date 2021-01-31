@@ -1,4 +1,4 @@
-port module Runner exposing (Error(..), Msg, Runner, Success(..), Update(..), alsoDo, handlePageLoad, handlePageSave, loadPageThen, loadPath, log, onPageLoad, put, putPage, savePageThen)
+port module Runner exposing (Msg, Runner, Update, alsoDo, done, handlePageLoad, handlePageNotFound, handlePageSave, loadPageThen, loadPath, log, onPageLoad, put, putPage, run, savePageThen, subscriptions, update)
 
 import Command.Path as Path exposing (Path)
 import FS
@@ -63,25 +63,39 @@ savePageThen time path page runner =
 -- Response unwrappers
 
 
-handlePageLoad : (Page -> ( Update, Cmd Msg )) -> Runner
-handlePageLoad handler msg =
+handlePageLoad : (Page -> ( Update, Cmd Msg )) -> Runner -> Runner
+handlePageLoad handler next msg =
     case msg of
         Ok (LoadedPage page) ->
             handler page
 
-        Err error ->
-            ( Done, put <| errorMessage error )
-
-        Ok _ ->
-            ( Done, put "Invalid state. This is a bug!" )
+        _ ->
+            next msg
 
 
-handlePageSave : ( Update, Cmd Msg ) -> Runner
-handlePageSave handler msg =
+handlePageSave : ( Update, Cmd Msg ) -> Runner -> Runner
+handlePageSave handler next msg =
     case msg of
         Ok SavedPage ->
             handler
 
+        _ ->
+            next msg
+
+
+handlePageNotFound : (String -> ( Update, Cmd Msg )) -> Runner -> Runner
+handlePageNotFound handler next msg =
+    case msg of
+        Err (FilesystemError (FS.NotFound path)) ->
+            handler path
+
+        _ ->
+            next msg
+
+
+run : Runner
+run msg =
+    case msg of
         Err error ->
             ( Done, put <| errorMessage error )
 
@@ -157,3 +171,32 @@ alsoDo cmd =
 log : String -> ( Update, Cmd Msg ) -> ( Update, Cmd Msg )
 log =
     put >> alsoDo
+
+
+done : Cmd Msg -> ( Update, Cmd Msg )
+done =
+    Tuple.pair Done
+
+
+
+-- TEA functions for Program
+
+
+update : Msg -> Update -> ( Update, Cmd Msg )
+update msg update_ =
+    case update_ of
+        Update updater _ ->
+            updater msg
+
+        Done ->
+            ( Done, Cmd.none )
+
+
+subscriptions : Update -> Sub Msg
+subscriptions update_ =
+    case update_ of
+        Update _ sub ->
+            sub
+
+        Done ->
+            Sub.none

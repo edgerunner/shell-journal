@@ -12,5 +12,6 @@ init time path =
 
 pendingPageLoad : Path -> Runner
 pendingPageLoad path =
-    Runner.handlePageLoad
-        (Runner.putPage path >> Tuple.pair Done)
+    Runner.run
+        |> Runner.handlePageLoad
+            (Runner.putPage path >> Runner.done)

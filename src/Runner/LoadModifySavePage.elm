@@ -13,19 +13,19 @@ init time path modify =
 
 step1 : Time -> Path -> (Page -> Page) -> Runner
 step1 time path modify =
-    handlePageLoad
-        (\page ->
-            let
-                modifiedPage =
-                    modify page
-            in
-            savePageThen time path modifiedPage (step2 path modifiedPage)
-        )
+    Runner.run
+        |> handlePageLoad
+            (\page ->
+                let
+                    modifiedPage =
+                        modify page
+                in
+                savePageThen time path modifiedPage (step2 path modifiedPage)
+            )
 
 
 step2 : Path -> Page -> Runner
 step2 path page =
-    handlePageSave
-        ( Done
-        , Runner.putPage path (Page.clip 2 page)
-        )
+    Runner.run
+        |> handlePageSave
+            (Runner.done <| Runner.putPage path (Page.clip 2 page))

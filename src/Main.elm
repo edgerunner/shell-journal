@@ -3,7 +3,7 @@ module Main exposing (main)
 import Command exposing (Command(..))
 import Command.Path exposing (Path(..))
 import Flags exposing (Flags)
-import Runner exposing (Error(..), Msg, Success(..), Update(..))
+import Runner exposing (Msg, Update)
 import Runner.Add
 import Runner.Check
 import Runner.Move
@@ -16,8 +16,8 @@ main : Program Flags Update Msg
 main =
     Platform.worker
         { init = init
-        , update = update
-        , subscriptions = subscriptions
+        , update = Runner.update
+        , subscriptions = Runner.subscriptions
         }
 
 
@@ -26,7 +26,7 @@ init flags =
     Flags.decode flags
         |> Result.map selectCommand
         |> Result.withDefault
-            ( Done, Runner.put "Sorry, that command did not make sense" )
+            (Runner.done <| Runner.put "Sorry, that command did not make sense")
 
 
 selectCommand : ( Time, Command ) -> ( Update, Cmd Msg )
@@ -46,23 +46,3 @@ selectCommand ( time, command ) =
 
         Move sourcePath lineNumber destinationPath ->
             Runner.Move.init time sourcePath lineNumber destinationPath
-
-
-update : Msg -> Update -> ( Update, Cmd Msg )
-update msg update_ =
-    case update_ of
-        Update updater _ ->
-            updater msg
-
-        Done ->
-            ( Done, Cmd.none )
-
-
-subscriptions : Update -> Sub Msg
-subscriptions update_ =
-    case update_ of
-        Update _ sub ->
-            sub
-
-        Done ->
-            Sub.none
