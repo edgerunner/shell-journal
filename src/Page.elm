@@ -1,4 +1,4 @@
-module Page exposing (Line, LineError(..), Page, add, blank, check, clip, get, lineToString, move, parse, star, terminalOutput, toString)
+module Page exposing (Line, LineError(..), Page, add, blank, check, clip, get, lineErrorMessage, lineToString, move, parse, star, terminalOutput, toString)
 
 import Bullet exposing (Bullet(..), TaskState(..))
 import Parser exposing ((|.), (|=), Parser)
@@ -109,6 +109,28 @@ modifyByLineNumber modify lineNumber page_ =
             else
                 modifyByLineNumber modify lineNumber rest
                     |> Result.map ((::) line_)
+
+
+lineErrorMessage : String -> LineError -> String
+lineErrorMessage pageTitle error =
+    case error of
+        LineNotFound lineNumber ->
+            String.concat
+                [ "Line number \u{001B}[1m"
+                , String.fromInt lineNumber
+                , "\u{001B}[22m is not in the page for \u{001B}[1m"
+                , pageTitle
+                , "\u{001B}[0m"
+                ]
+
+        InvalidOperation errorMessage ->
+            String.concat
+                [ "Invalid operation on \u{001B}[1m"
+                , pageTitle
+                , "\u{001B}[22m: "
+                , errorMessage
+                , "\u{001B}[1m"
+                ]
 
 
 blank : Page

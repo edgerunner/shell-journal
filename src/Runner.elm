@@ -4,6 +4,7 @@ port module Runner exposing
     , Update
     , alsoDo
     , done
+    , fail
     , handlePageLoad
     , handlePageNotFound
     , handlePageSave
@@ -206,6 +207,11 @@ logError =
 done : Cmd Msg -> ( Update, Cmd Msg )
 done =
     Tuple.pair Done
+
+
+fail : (error -> String) -> Result error ( Update, Cmd Msg ) -> ( Update, Cmd Msg )
+fail errorToMessage =
+    Utilities.handleError (errorToMessage >> logError >> (|>) (done Cmd.none))
 
 
 

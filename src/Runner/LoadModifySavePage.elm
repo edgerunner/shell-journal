@@ -20,30 +20,7 @@ step1 time path modify =
                     (\modifiedPage ->
                         savePageThen time path modifiedPage (step2 path modifiedPage)
                     )
-                >> Utilities.handleError
-                    (\error ->
-                        Runner.done Cmd.none
-                            |> Runner.logError
-                                (case error of
-                                    Page.LineNotFound lineNumber ->
-                                        String.concat
-                                            [ "Line number \u{001B}[1m"
-                                            , String.fromInt lineNumber
-                                            , "\u{001B}[22m is not in the page for \u{001B}[1m"
-                                            , Path.toTitle path
-                                            , "\u{001B}[0m"
-                                            ]
-
-                                    Page.InvalidOperation errorMessage ->
-                                        String.concat
-                                            [ "Invalid operation on \u{001B}[1m"
-                                            , Path.toTitle path
-                                            , "\u{001B}[22m: "
-                                            , errorMessage
-                                            , "\u{001B}[1m"
-                                            ]
-                                )
-                    )
+                >> Runner.fail (Page.lineErrorMessage <| Path.toTitle path)
             )
 
 
