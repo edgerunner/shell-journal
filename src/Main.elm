@@ -6,6 +6,7 @@ import Flags exposing (Flags)
 import Runner exposing (Msg, Update)
 import Runner.Add
 import Runner.Check
+import Runner.List
 import Runner.Move
 import Runner.Star
 import Runner.View
@@ -45,3 +46,6 @@ selectCommand ( time, command ) =
 
         Move sourcePath lineNumber destinationPath ->
             Runner.Move.init time sourcePath lineNumber destinationPath
+
+        List _ ->
+            Runner.List.init

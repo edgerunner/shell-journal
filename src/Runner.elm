@@ -6,13 +6,16 @@ port module Runner exposing
     , done
     , doneWith
     , fail
+    , handleGotPageList
     , handlePageLoad
     , handlePageNotFound
     , handlePageSave
+    , init
     , loadPageThen
     , loadPath
     , log
     , logError
+    , onPageList
     , onPageLoad
     , put
     , putPage
@@ -51,6 +54,7 @@ type Error
 
 type Success
     = LoadedPage Page
+    | GotPageList (List String)
     | SavedPage
 
 
@@ -106,6 +110,16 @@ handlePageSave handler next msg =
             next msg
 
 
+handleGotPageList : (List String -> ( Update, Cmd Msg )) -> Runner -> Runner
+handleGotPageList handler next msg =
+    case msg of
+        Ok (GotPageList list) ->
+            handler list
+
+        _ ->
+            next msg
+
+
 handlePageNotFound : (String -> ( Update, Cmd Msg )) -> Runner -> Runner
 handlePageNotFound handler next msg =
     case msg of
@@ -124,6 +138,11 @@ run msg =
 
         Ok _ ->
             logError "Invalid state. This is a bug!" done
+
+
+init : Runner -> Sub Msg -> Cmd Msg -> ( Update, Cmd Msg )
+init runner sub cmd =
+    ( Update runner sub, cmd )
 
 
 errorMessage : Error -> String
@@ -159,6 +178,14 @@ onPageSave : Sub Msg
 onPageSave =
     Result.mapError FilesystemError
         >> Result.map (always SavedPage)
+        |> FS.subscription
+
+
+onPageList : Sub Msg
+onPageList =
+    Result.mapError FilesystemError
+        >> Result.andThen (Jd.decodeValue (Jd.list Jd.string) >> Result.mapError DecodingError)
+        >> Result.map GotPageList
         |> FS.subscription
 
 

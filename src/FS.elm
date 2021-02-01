@@ -1,4 +1,4 @@
-port module FS exposing (Error(..), append, read, subscription, write)
+port module FS exposing (Error(..), append, read, readdir, subscription, write)
 
 import Json.Decode as Jd
 import Json.Encode as Je exposing (Value)
@@ -43,6 +43,11 @@ append path string =
 write : String -> String -> Cmd msg
 write path string =
     request "writeFile" [ Je.string path, Je.string string ]
+
+
+readdir : String -> Cmd msg
+readdir path =
+    request "readdir" [ Je.string path ]
 
 
 subscription : (Result Error Value -> msg) -> Sub msg
