@@ -25,8 +25,7 @@ init : Flags -> ( Update, Cmd Msg )
 init flags =
     Flags.decode flags
         |> Result.map selectCommand
-        |> Result.withDefault
-            (Runner.done <| Runner.put "Sorry, that command did not make sense")
+        |> Runner.fail (always "Sorry, that command did not make sense")
 
 
 selectCommand : ( Time, Command ) -> ( Update, Cmd Msg )
