@@ -11,6 +11,7 @@ type Command
     | Check Path Int
     | Star Path Int
     | Move Path Int Path
+    | List Path
 
 
 parse : String -> Result String Command
@@ -49,6 +50,7 @@ commandParser path_ =
             |= P.int
             |. P.spaces
             |= Path.parser
+        , P.succeed (List path_)
         , P.succeed (View path_)
             |. P.keyword "view"
         , P.succeed (View path_)
@@ -81,4 +83,7 @@ path command =
             path_
 
         Move path_ _ _ ->
+            path_
+
+        List path_ ->
             path_
