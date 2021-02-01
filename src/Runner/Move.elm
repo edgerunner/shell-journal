@@ -25,54 +25,77 @@ step1 time sourcePath lineNumber destinationPath =
             )
 
 
+lineError : Path -> Page -> Int -> ( Update, Cmd Msg )
+lineError path page lineNumber =
+    Runner.putPage path page
+        |> Runner.doneWith
+        |> (String.concat
+                [ "Line number "
+                , Style.escape [ Style.bold ]
+                , String.fromInt lineNumber
+                , Style.escape [ Style.regular ]
+                , " is not in the page for "
+                , Style.escape [ Style.bold ]
+                , Path.toTitle path
+                , Style.escape [ Style.reset ]
+                ]
+                |> Runner.logError
+           )
+
+
+transfer : Time -> Path -> Int -> Path -> Page -> Page.Line -> Page -> ( Update, Cmd Msg )
+transfer time sourcePath lineNumber destinationPath sourcePage sourceLine destinationPage =
+    let
+        modifiedDestination =
+            Page.add sourceLine.bullet sourceLine.body destinationPage
+
+        destinationLineNumber =
+            List.length modifiedDestination
+
+        destinationPathString =
+            Path.toString time destinationPath
+
+        modifiedSourceResult =
+            Page.move
+                destinationPathString
+                destinationLineNumber
+                lineNumber
+                sourcePage
+
+        mappedResult modifiedSource =
+            Runner.savePageThen time destinationPath modifiedDestination <|
+                step3 time sourcePath modifiedSource destinationPath modifiedDestination
+    in
+    modifiedSourceResult
+        |> Result.map mappedResult
+        |> Runner.fail (Page.lineErrorMessage <| Path.toTitle sourcePath)
+
+
 step2 : Time -> Path -> Int -> Path -> Page -> Runner
 step2 time sourcePath lineNumber destinationPath sourcePage =
-    Runner.run
-        |> Runner.handlePageLoad
-            (\destinationPage ->
-                case Page.get lineNumber sourcePage of
-                    Nothing ->
-                        Runner.putPage sourcePath sourcePage
-                            |> Runner.doneWith
-                            |> (String.concat
-                                    [ "Line number "
-                                    , Style.escape [ Style.bold ]
-                                    , String.fromInt lineNumber
-                                    , Style.escape [ Style.regular ]
-                                    , " is not in the page for "
-                                    , Style.escape [ Style.bold ]
-                                    , Path.toTitle sourcePath
-                                    , Style.escape [ Style.reset ]
-                                    ]
-                                    |> Runner.logError
-                               )
+    case Page.get lineNumber sourcePage of
+        Nothing ->
+            always <|
+                lineError sourcePath sourcePage lineNumber
 
-                    Just sourceLine ->
-                        let
-                            modifiedDestination =
-                                Page.add sourceLine.bullet sourceLine.body destinationPage
-
-                            destinationLineNumber =
-                                List.length modifiedDestination
-
-                            destinationPathString =
-                                Path.toString time destinationPath
-
-                            modifiedSourceResult =
-                                Page.move
-                                    destinationPathString
-                                    destinationLineNumber
-                                    lineNumber
-                                    sourcePage
-
-                            mappedResult modifiedSource =
-                                Runner.savePageThen time destinationPath modifiedDestination <|
-                                    step3 time sourcePath modifiedSource destinationPath modifiedDestination
-                        in
-                        modifiedSourceResult
-                            |> Result.map mappedResult
-                            |> Runner.fail (Page.lineErrorMessage <| Path.toTitle sourcePath)
-            )
+        Just sourceLine ->
+            let
+                doTransfer =
+                    transfer
+                        time
+                        sourcePath
+                        lineNumber
+                        destinationPath
+                        sourcePage
+                        sourceLine
+            in
+            Runner.run
+                |> Runner.handlePageLoad doTransfer
+                |> Runner.handlePageNotFound
+                    (doTransfer Page.blank
+                        |> Runner.log "Creating blank page"
+                        |> always
+                    )
 
 
 step3 : Time -> Path -> Page -> Path -> Page -> Runner
