@@ -33,7 +33,7 @@ step2 time sourcePath lineNumber destinationPath sourcePage =
                 case Page.get lineNumber sourcePage of
                     Nothing ->
                         Runner.putPage sourcePath sourcePage
-                            |> Runner.done
+                            |> Runner.doneWith
                             |> (String.concat
                                     [ "Line number "
                                     , Style.escape [ Style.bold ]
@@ -88,7 +88,7 @@ step4 : Path -> Page -> Path -> Page -> Runner
 step4 sourcePath modifiedSource destinationPath modifiedDestination =
     Runner.run
         |> Runner.handlePageSave
-            (Runner.done <|
+            (Runner.doneWith <|
                 Cmd.batch
                     [ Runner.putPage destinationPath <| Page.clip 2 modifiedDestination
                     , Runner.putPage sourcePath <| Page.clip 1 modifiedSource

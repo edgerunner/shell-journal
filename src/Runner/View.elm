@@ -14,4 +14,4 @@ pendingPageLoad : Path -> Runner
 pendingPageLoad path =
     Runner.run
         |> Runner.handlePageLoad
-            (Runner.putPage path >> Runner.done)
+            (Runner.putPage path >> Runner.doneWith)

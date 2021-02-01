@@ -4,6 +4,7 @@ port module Runner exposing
     , Update
     , alsoDo
     , done
+    , doneWith
     , fail
     , handlePageLoad
     , handlePageNotFound
@@ -119,12 +120,10 @@ run : Runner
 run msg =
     case msg of
         Err error ->
-            done Cmd.none
-                |> logError (errorMessage error)
+            logError (errorMessage error) done
 
         Ok _ ->
-            done Cmd.none
-                |> logError "Invalid state. This is a bug!"
+            logError "Invalid state. This is a bug!" done
 
 
 errorMessage : Error -> String
@@ -210,14 +209,19 @@ logError =
         >> log
 
 
-done : Cmd Msg -> ( Update, Cmd Msg )
-done =
+doneWith : Cmd Msg -> ( Update, Cmd Msg )
+doneWith =
     Tuple.pair Done
+
+
+done : ( Update, Cmd Msg )
+done =
+    ( Done, Cmd.none )
 
 
 fail : (error -> String) -> Result error ( Update, Cmd Msg ) -> ( Update, Cmd Msg )
 fail errorToMessage =
-    Utilities.handleError (errorToMessage >> logError >> (|>) (done Cmd.none))
+    Utilities.handleError (errorToMessage >> logError >> (|>) done)
 
 
 

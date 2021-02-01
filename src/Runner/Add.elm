@@ -38,4 +38,4 @@ step3 : Path -> Page -> Runner
 step3 path page =
     Runner.run
         |> Runner.handlePageSave
-            (Runner.done <| Runner.putPage path <| Page.clip 2 page)
+            (Runner.doneWith <| Runner.putPage path <| Page.clip 2 page)
