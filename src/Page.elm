@@ -102,10 +102,7 @@ modifyByLineNumber modify lineNumber page_ =
             if lineNumber == line_.lineNumber then
                 modify { line_ | highlight = True }
                     |> Result.andThen
-                        ((::)
-                            >> (|>) rest
-                            >> modifyByLineNumber modify lineNumber
-                        )
+                        ((::) >> (|>) rest >> Ok)
 
             else
                 modifyByLineNumber modify lineNumber rest
