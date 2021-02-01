@@ -27,6 +27,7 @@ import Json.Decode as Jd
 import Page exposing (Page)
 import Parser
 import Result
+import Style
 import Utilities exposing (Time)
 
 
@@ -181,7 +182,12 @@ putPage path page =
 
 title : String -> String
 title path =
-    "\n Shell Journal — \u{001B}[36m" ++ path ++ "\u{001B}[0m"
+    String.concat
+        [ "\n Shell Journal — "
+        , Style.escape [ Style.cyan ]
+        , path
+        , Style.escape [ Style.reset ]
+        ]
 
 
 alsoDo : Cmd Msg -> ( Update, Cmd Msg ) -> ( Update, Cmd Msg )
@@ -198,9 +204,9 @@ log =
 
 logError : String -> ( Update, Cmd Msg ) -> ( Update, Cmd Msg )
 logError =
-    String.append "\n\u{001B}[31m"
+    String.append (Style.escape [ Style.red ])
         >> String.append
-        >> (|>) "\u{001B}[0m"
+        >> (|>) (Style.escape [ Style.reset ])
         >> log
 
 

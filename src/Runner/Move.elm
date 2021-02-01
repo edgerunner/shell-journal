@@ -5,6 +5,7 @@ import Command.Path as Path exposing (Path)
 import Page exposing (Page)
 import Platform.Cmd exposing (Cmd)
 import Runner exposing (Msg, Runner, Update(..))
+import Style
 import Utilities exposing (Time)
 
 
@@ -34,10 +35,14 @@ step2 time sourcePath lineNumber destinationPath sourcePage =
                         Runner.putPage sourcePath sourcePage
                             |> Runner.done
                             |> (String.concat
-                                    [ "Line number \u{001B}[1m"
+                                    [ "Line number "
+                                    , Style.escape [ Style.bold ]
                                     , String.fromInt lineNumber
-                                    , "\u{001B}[22m is not in the page for \u{001B}[1m"
+                                    , Style.escape [ Style.regular ]
+                                    , " is not in the page for "
+                                    , Style.escape [ Style.bold ]
                                     , Path.toTitle sourcePath
+                                    , Style.escape [ Style.reset ]
                                     ]
                                     |> Runner.logError
                                )

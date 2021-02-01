@@ -2,6 +2,7 @@ module Page exposing (Line, LineError(..), Page, add, blank, check, clip, get, l
 
 import Bullet exposing (Bullet(..), TaskState(..))
 import Parser exposing ((|.), (|=), Parser)
+import Style exposing (escape)
 import Utilities exposing (only, optionalString)
 
 
@@ -116,20 +117,22 @@ lineErrorMessage pageTitle error =
     case error of
         LineNotFound lineNumber ->
             String.concat
-                [ "Line number \u{001B}[1m"
+                [ "Line number "
+                , escape [ Style.bold ]
                 , String.fromInt lineNumber
-                , "\u{001B}[22m is not in the page for \u{001B}[1m"
+                , escape [ Style.regular ]
+                , " is not in the page for "
+                , escape [ Style.bold ]
                 , pageTitle
-                , "\u{001B}[0m"
+                , escape [ Style.reset ]
                 ]
 
         InvalidOperation errorMessage ->
             String.concat
-                [ "Invalid operation on \u{001B}[1m"
+                [ "Invalid operation on "
                 , pageTitle
-                , "\u{001B}[22m: "
+                , ": "
                 , errorMessage
-                , "\u{001B}[1m"
                 ]
 
 
@@ -167,17 +170,17 @@ terminalOutput lines =
 
 colorLine : Line -> String
 colorLine thisLine =
-    styleEscape
+    escape
         (if thisLine.highlight then
-            [ style.brightYellow ]
+            [ Style.bright Style.yellow ]
 
          else
-            [ style.black ]
+            [ Style.black ]
         )
         ++ (String.padLeft 3 ' ' <| String.fromInt thisLine.lineNumber)
-        ++ styleEscape [ style.reset ]
+        ++ escape [ Style.reset ]
         ++ (if thisLine.star then
-                styleEscape [ style.bold ]
+                escape [ Style.bold ]
 
             else
                 ""
@@ -189,7 +192,7 @@ colorLine thisLine =
         ++ moveDestination thisLine
         ++ thisLine.body
         ++ optionalString yellowStar thisLine.star
-        ++ styleEscape [ style.reset ]
+        ++ escape [ Style.reset ]
 
 
 moveDestination : Line -> String
@@ -206,47 +209,27 @@ colorCode : Bullet -> String
 colorCode bullet =
     case bullet of
         Task Pending ->
-            styleEscape [ style.default ]
+            escape [ Style.default ]
 
         Task Done ->
-            styleEscape [ style.dim ]
+            escape [ Style.dim ]
 
         Task (Moved _ _) ->
-            styleEscape [ style.green ]
+            escape [ Style.green ]
 
         Event ->
-            styleEscape [ style.white ]
+            escape [ Style.white ]
 
         Note ->
-            styleEscape [ style.italic, style.blue ]
+            escape [ Style.italic, Style.blue ]
 
 
 yellowStar : String
 yellowStar =
     " "
-        ++ styleEscape [ style.brightYellow ]
+        ++ escape [ Style.bright Style.yellow ]
         ++ starSymbol
-        ++ styleEscape [ style.reset ]
-
-
-style : { reset : String, bold : String, dim : String, italic : String, default : String, white : String, green : String, blue : String, black : String, brightYellow : String }
-style =
-    { reset = "0"
-    , bold = "1"
-    , dim = "2"
-    , italic = "3"
-    , default = "39"
-    , white = "37"
-    , blue = "34"
-    , green = "32"
-    , black = "30"
-    , brightYellow = "93"
-    }
-
-
-styleEscape : List String -> String
-styleEscape inner =
-    "\u{001B}[" ++ String.join ";" inner ++ "m"
+        ++ escape [ Style.reset ]
 
 
 
