@@ -51,6 +51,7 @@ commandParser path_ =
             |. P.spaces
             |= Path.parser
         , P.succeed (List path_)
+            |. P.keyword "list"
         , P.succeed (View path_)
             |. P.keyword "view"
         , P.succeed (View path_)
