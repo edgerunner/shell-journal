@@ -117,7 +117,7 @@ lineErrorMessage pageTitle error =
                 [ "Line number "
                 , escape [ Style.bold ]
                 , String.fromInt lineNumber
-                , escape [ Style.regular ]
+                , escape [ Style.not Style.bold ]
                 , " is not in the page for "
                 , escape [ Style.bold ]
                 , pageTitle

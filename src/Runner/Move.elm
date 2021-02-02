@@ -50,7 +50,7 @@ lineError path page lineNumber =
                 [ "Line number "
                 , Style.escape [ Style.bold ]
                 , String.fromInt lineNumber
-                , Style.escape [ Style.regular ]
+                , Style.escape [ Style.not Style.bold ]
                 , " is not in the page for "
                 , Style.escape [ Style.bold ]
                 , Path.toTitle path
