@@ -7,20 +7,28 @@ import Runner exposing (Msg, Runner, Update)
 import Utilities exposing (Time)
 
 
+type alias Context =
+    { time : Time
+    , path : Path
+    , bullet : Bullet
+    , body : String
+    }
+
+
 init : Time -> Path -> Bullet -> String -> ( Update, Cmd Msg )
-init time path bullet content =
-    Runner.loadPageThen time path (step1 time path bullet content)
+init time path bullet body =
+    Runner.loadPageThen time path (step1 <| Context time path bullet body)
 
 
-step1 : Time -> Path -> Bullet -> String -> Runner
-step1 time path bullet body =
+step1 : Context -> Runner
+step1 ctx =
     let
         runWith page =
-            Runner.savePageThen time path page <|
-                step3 path page
+            Runner.savePageThen ctx.time ctx.path page <|
+                step2 ctx page
 
         addTo =
-            Page.add bullet body
+            Page.add ctx.bullet ctx.body
     in
     Runner.run
         |> Runner.handlePageLoad (addTo >> runWith)
@@ -34,8 +42,8 @@ step1 time path bullet body =
             )
 
 
-step3 : Path -> Page -> Runner
-step3 path page =
+step2 : Context -> Page -> Runner
+step2 ctx page =
     Runner.run
         |> Runner.handlePageSave
-            (Runner.doneWith <| Runner.putPage path <| Page.clip 2 page)
+            (Runner.doneWith <| Runner.putPage ctx.path <| Page.clip 2 page)
