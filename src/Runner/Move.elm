@@ -19,9 +19,18 @@ type alias Context =
 
 init : Time -> Path -> Int -> Path -> ( Update, Cmd Msg )
 init time sourcePath lineNumber destinationPath =
-    Runner.loadPageThen time
-        sourcePath
-        (step1 <| Context time sourcePath lineNumber destinationPath)
+    if Path.toString time sourcePath == Path.toString time destinationPath then
+        Runner.done
+            |> Runner.logError "The origin and destination pages are the same"
+            |> Runner.log
+                ("The move command transfers a pending task from one page to another. "
+                    ++ "Please make sure that the origin and destination pages are different."
+                )
+
+    else
+        Runner.loadPageThen time
+            sourcePath
+            (step1 <| Context time sourcePath lineNumber destinationPath)
 
 
 step1 : Context -> Runner
