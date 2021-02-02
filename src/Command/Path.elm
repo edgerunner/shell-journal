@@ -72,21 +72,28 @@ dateKeywordParser =
             [ P.succeed (This KwDay) |. P.keyword "today"
             , P.succeed (Next KwDay) |. P.keyword "tomorrow"
             , P.succeed (Last KwDay) |. P.keyword "yesterday"
-            , dateBlockKeywordParser "this" This
-            , dateBlockKeywordParser "next" Next
-            , dateBlockKeywordParser "last" Last
-            , dateBlockKeywordParser "" This
+            , dateBlockKeywordParser (Just "this") This
+            , dateBlockKeywordParser (Just "next") Next
+            , dateBlockKeywordParser (Just "last") Last
+            , dateBlockKeywordParser Nothing This
             ]
 
 
+pathSeperator : Parser ()
+pathSeperator =
+    P.oneOf
+        [ P.symbol "-"
+        , P.spaces
+        ]
+
+
 dateBlockKeywordParser :
-    String
+    Maybe String
     -> (DateBlockKeyword -> RelativeDateKeyword)
     -> Parser RelativeDateKeyword
 dateBlockKeywordParser keyword relativeDate =
     P.succeed relativeDate
-        |. P.keyword keyword
-        |. P.spaces
+        |. maybeKeyword keyword
         |= P.oneOf
             [ P.succeed KwDay |. P.keyword "day"
             , P.succeed KwWeek |. P.keyword "week"
@@ -95,6 +102,16 @@ dateBlockKeywordParser keyword relativeDate =
             , P.succeed KwYear |. P.keyword "year"
             , P.succeed KwWeekday |= weekdayParser
             ]
+
+
+maybeKeyword : Maybe String -> Parser ()
+maybeKeyword =
+    Maybe.map keywordAndSeperator >> Maybe.withDefault (P.succeed ())
+
+
+keywordAndSeperator : String -> Parser ()
+keywordAndSeperator =
+    P.keyword >> (|.) >> (|>) pathSeperator
 
 
 datePathParser : Parser Path
