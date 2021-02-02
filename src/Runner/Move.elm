@@ -9,19 +9,27 @@ import Style
 import Utilities exposing (Time)
 
 
+type alias Context =
+    { time : Time
+    , sourcePath : Path
+    , lineNumber : Int
+    , destinationPath : Path
+    }
+
+
 init : Time -> Path -> Int -> Path -> ( Update, Cmd Msg )
 init time sourcePath lineNumber destinationPath =
     Runner.loadPageThen time
         sourcePath
-        (step1 time sourcePath lineNumber destinationPath)
+        (step1 <| Context time sourcePath lineNumber destinationPath)
 
 
-step1 : Time -> Path -> Int -> Path -> Runner
-step1 time sourcePath lineNumber destinationPath =
+step1 : Context -> Runner
+step1 ctx =
     Runner.run
         |> Runner.handlePageLoad
-            (Runner.loadPageThen time destinationPath
-                << step2 time sourcePath lineNumber destinationPath
+            (Runner.loadPageThen ctx.time ctx.destinationPath
+                << step2 ctx
             )
 
 
@@ -43,8 +51,8 @@ lineError path page lineNumber =
            )
 
 
-transfer : Time -> Path -> Int -> Path -> Page -> Page.Line -> Page -> ( Update, Cmd Msg )
-transfer time sourcePath lineNumber destinationPath sourcePage sourceLine destinationPage =
+transfer : Context -> Page -> Page.Line -> Page -> ( Update, Cmd Msg )
+transfer ctx sourcePage sourceLine destinationPage =
     let
         modifiedDestination =
             Page.add sourceLine.bullet sourceLine.body destinationPage
@@ -53,41 +61,35 @@ transfer time sourcePath lineNumber destinationPath sourcePage sourceLine destin
             List.length modifiedDestination
 
         destinationPathString =
-            Path.toString time destinationPath
+            Path.toString ctx.time ctx.destinationPath
 
         modifiedSourceResult =
             Page.move
                 destinationPathString
                 destinationLineNumber
-                lineNumber
+                ctx.lineNumber
                 sourcePage
 
         mappedResult modifiedSource =
-            Runner.savePageThen time destinationPath modifiedDestination <|
-                step3 time sourcePath modifiedSource destinationPath modifiedDestination
+            Runner.savePageThen ctx.time ctx.destinationPath modifiedDestination <|
+                step3 ctx modifiedSource modifiedDestination
     in
     modifiedSourceResult
         |> Result.map mappedResult
-        |> Runner.fail (Page.lineErrorMessage <| Path.toTitle sourcePath)
+        |> Runner.fail (Page.lineErrorMessage <| Path.toTitle ctx.sourcePath)
 
 
-step2 : Time -> Path -> Int -> Path -> Page -> Runner
-step2 time sourcePath lineNumber destinationPath sourcePage =
-    case Page.get lineNumber sourcePage of
+step2 : Context -> Page -> Runner
+step2 ctx sourcePage =
+    case Page.get ctx.lineNumber sourcePage of
         Nothing ->
             always <|
-                lineError sourcePath sourcePage lineNumber
+                lineError ctx.sourcePath sourcePage ctx.lineNumber
 
         Just sourceLine ->
             let
                 doTransfer =
-                    transfer
-                        time
-                        sourcePath
-                        lineNumber
-                        destinationPath
-                        sourcePage
-                        sourceLine
+                    transfer ctx sourcePage sourceLine
             in
             Runner.run
                 |> Runner.handlePageLoad doTransfer
@@ -98,22 +100,22 @@ step2 time sourcePath lineNumber destinationPath sourcePage =
                     )
 
 
-step3 : Time -> Path -> Page -> Path -> Page -> Runner
-step3 time sourcePath modifiedSource destinationPath modifiedDestination =
+step3 : Context -> Page -> Page -> Runner
+step3 ctx modifiedSource modifiedDestination =
     Runner.run
         |> Runner.handlePageSave
-            (Runner.savePageThen time sourcePath modifiedSource <|
-                step4 sourcePath modifiedSource destinationPath modifiedDestination
+            (Runner.savePageThen ctx.time ctx.sourcePath modifiedSource <|
+                step4 ctx modifiedSource modifiedDestination
             )
 
 
-step4 : Path -> Page -> Path -> Page -> Runner
-step4 sourcePath modifiedSource destinationPath modifiedDestination =
+step4 : Context -> Page -> Page -> Runner
+step4 ctx modifiedSource modifiedDestination =
     Runner.run
         |> Runner.handlePageSave
             (Runner.doneWith <|
                 Cmd.batch
-                    [ Runner.putPage destinationPath <| Page.clip 2 modifiedDestination
-                    , Runner.putPage sourcePath <| Page.clip 1 modifiedSource
+                    [ Runner.putPage ctx.destinationPath <| Page.clip 2 modifiedDestination
+                    , Runner.putPage ctx.sourcePath <| Page.clip 1 modifiedSource
                     ]
             )
