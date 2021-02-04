@@ -2,29 +2,29 @@ module Runner.Add exposing (init)
 
 import Bullet exposing (Bullet)
 import Command.Path exposing (Path)
+import Flags exposing (Flags)
 import Page exposing (Page)
 import Runner exposing (Msg, Runner, Update)
-import Utilities exposing (Time)
 
 
 type alias Context =
-    { time : Time
+    { flags : Flags
     , path : Path
     , bullet : Bullet
     , body : String
     }
 
 
-init : Time -> Path -> Bullet -> String -> ( Update, Cmd Msg )
-init time path bullet body =
-    Runner.loadPageThen time path (step1 <| Context time path bullet body)
+init : Flags -> Path -> Bullet -> String -> ( Update, Cmd Msg )
+init flags path bullet body =
+    Runner.loadPageThen flags path (step1 <| Context flags path bullet body)
 
 
 step1 : Context -> Runner
 step1 ctx =
     let
         runWith page =
-            Runner.savePageThen ctx.time ctx.path page <|
+            Runner.savePageThen ctx.flags ctx.path page <|
                 step2 ctx page
 
         addTo =

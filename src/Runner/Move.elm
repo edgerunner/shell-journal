@@ -2,24 +2,24 @@ module Runner.Move exposing (init)
 
 import Command
 import Command.Path as Path exposing (Path)
+import Flags exposing (Flags)
 import Page exposing (Page)
 import Platform.Cmd exposing (Cmd)
 import Runner exposing (Msg, Runner, Update(..))
 import Style
-import Utilities exposing (Time)
 
 
 type alias Context =
-    { time : Time
+    { flags : Flags
     , sourcePath : Path
     , lineNumber : Int
     , destinationPath : Path
     }
 
 
-init : Time -> Path -> Int -> Path -> ( Update, Cmd Msg )
-init time sourcePath lineNumber destinationPath =
-    if Path.toString time sourcePath == Path.toString time destinationPath then
+init : Flags -> Path -> Int -> Path -> ( Update, Cmd Msg )
+init flags sourcePath lineNumber destinationPath =
+    if Path.toString flags sourcePath == Path.toString flags destinationPath then
         Runner.done
             |> Runner.logError "The origin and destination pages are the same"
             |> Runner.log
@@ -28,16 +28,16 @@ init time sourcePath lineNumber destinationPath =
                 )
 
     else
-        Runner.loadPageThen time
+        Runner.loadPageThen flags
             sourcePath
-            (step1 <| Context time sourcePath lineNumber destinationPath)
+            (step1 <| Context flags sourcePath lineNumber destinationPath)
 
 
 step1 : Context -> Runner
 step1 ctx =
     Runner.run
         |> Runner.handlePageLoad
-            (Runner.loadPageThen ctx.time ctx.destinationPath
+            (Runner.loadPageThen ctx.flags ctx.destinationPath
                 << step2 ctx
             )
 
@@ -70,7 +70,7 @@ transfer ctx sourcePage sourceLine destinationPage =
             List.length modifiedDestination
 
         destinationPathString =
-            Path.toString ctx.time ctx.destinationPath
+            Path.toString ctx.flags ctx.destinationPath
 
         modifiedSourceResult =
             Page.move
@@ -80,7 +80,7 @@ transfer ctx sourcePage sourceLine destinationPage =
                 sourcePage
 
         mappedResult modifiedSource =
-            Runner.savePageThen ctx.time ctx.destinationPath modifiedDestination <|
+            Runner.savePageThen ctx.flags ctx.destinationPath modifiedDestination <|
                 step3 ctx modifiedSource modifiedDestination
     in
     modifiedSourceResult
@@ -113,7 +113,7 @@ step3 : Context -> Page -> Page -> Runner
 step3 ctx modifiedSource modifiedDestination =
     Runner.run
         |> Runner.handlePageSave
-            (Runner.savePageThen ctx.time ctx.sourcePath modifiedSource <|
+            (Runner.savePageThen ctx.flags ctx.sourcePath modifiedSource <|
                 step4 ctx modifiedSource modifiedDestination
             )
 

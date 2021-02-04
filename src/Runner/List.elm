@@ -1,15 +1,16 @@
 module Runner.List exposing (..)
 
 import FS
+import Flags exposing (Flags)
 import Runner exposing (Msg, Runner, Update(..))
 
 
-init : ( Update, Cmd Msg )
-init =
+init : Flags -> ( Update, Cmd Msg )
+init { basePath } =
     Runner.init
         step1
         Runner.onPageList
-        (FS.readdir ".shjo")
+        (FS.readdir basePath)
 
 
 step1 : Runner

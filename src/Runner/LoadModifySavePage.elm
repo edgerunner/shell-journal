@@ -1,24 +1,24 @@
 module Runner.LoadModifySavePage exposing (init, step1, step2)
 
 import Command.Path as Path exposing (Path)
+import Flags exposing (Flags)
 import Page exposing (LineError, Page)
 import Runner exposing (Msg, Runner, Update(..), handlePageLoad, handlePageSave, loadPageThen, savePageThen)
-import Utilities exposing (Time)
 
 
-init : Time -> Path -> (Page -> Result LineError Page) -> ( Update, Cmd Msg )
-init time path modify =
-    loadPageThen time path (step1 time path modify)
+init : Flags -> Path -> (Page -> Result LineError Page) -> ( Update, Cmd Msg )
+init flags path modify =
+    loadPageThen flags path (step1 flags path modify)
 
 
-step1 : Time -> Path -> (Page -> Result LineError Page) -> Runner
-step1 time path modify =
+step1 : Flags -> Path -> (Page -> Result LineError Page) -> Runner
+step1 flags path modify =
     Runner.run
         |> handlePageLoad
             (modify
                 >> Result.map
                     (\modifiedPage ->
-                        savePageThen time path modifiedPage (step2 path modifiedPage)
+                        savePageThen flags path modifiedPage (step2 path modifiedPage)
                     )
                 >> Runner.fail (Page.lineErrorMessage <| Path.toTitle path)
             )

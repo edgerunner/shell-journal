@@ -1,11 +1,11 @@
 module Runner.View exposing (init)
 
 import Command.Path exposing (Path)
+import Flags exposing (Flags)
 import Runner exposing (Msg, Runner, Update(..))
-import Utilities exposing (Time)
 
 
-init : Time -> Path -> ( Update, Cmd Msg )
+init : Flags -> Path -> ( Update, Cmd Msg )
 init time path =
     Runner.loadPageThen time path (pendingPageLoad path)
 
