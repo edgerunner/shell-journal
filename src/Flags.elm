@@ -33,9 +33,24 @@ timeDecoder =
 
 zoneDecoder : Jd.Decoder Zone
 zoneDecoder =
-    Jd.field "zone" Jd.int
+    Jd.map2 (+) zoneOffsetDecoder midnightOffsetDecoder
         |> Jd.map Time.customZone
         |> Jd.map ((|>) [])
+
+
+midnightOffsetDecoder : Jd.Decoder Int
+midnightOffsetDecoder =
+    Jd.oneOf
+        [ Jd.field "SHJO_MIDNIGHT_OFFSET" Jd.string
+            |> Jd.field "env"
+            |> Jd.map (String.toInt >> Maybe.withDefault 0)
+        , Jd.succeed 0
+        ]
+
+
+zoneOffsetDecoder : Jd.Decoder Int
+zoneOffsetDecoder =
+    Jd.field "zone" Jd.int
 
 
 commandDecoder : Jd.Decoder Command
