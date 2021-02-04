@@ -3,6 +3,7 @@ module Main exposing (main)
 import Command exposing (Command(..))
 import Command.Path exposing (Path(..))
 import Flags exposing (Flags)
+import Json.Decode exposing (Value)
 import Runner exposing (Msg, Update)
 import Runner.Add
 import Runner.Check
@@ -10,10 +11,9 @@ import Runner.List
 import Runner.Move
 import Runner.Star
 import Runner.View
-import Utilities exposing (Time)
 
 
-main : Program Flags Update Msg
+main : Program Value Update Msg
 main =
     Platform.worker
         { init = init
@@ -22,30 +22,30 @@ main =
         }
 
 
-init : Flags -> ( Update, Cmd Msg )
-init flags =
-    Flags.decode flags
+init : Value -> ( Update, Cmd Msg )
+init rawFlags =
+    Flags.decode Command.parse rawFlags
         |> Result.map selectCommand
         |> Runner.fail (always "Sorry, that command did not make sense")
 
 
-selectCommand : ( Time, Command ) -> ( Update, Cmd Msg )
-selectCommand ( time, command ) =
+selectCommand : ( Command, Flags ) -> ( Update, Cmd Msg )
+selectCommand ( command, flags ) =
     case command of
         View path ->
-            Runner.View.init time path
+            Runner.View.init flags path
 
         Add path bullet body ->
-            Runner.Add.init time path bullet body
+            Runner.Add.init flags path bullet body
 
         Check path lineNumber ->
-            Runner.Check.init time path lineNumber
+            Runner.Check.init flags path lineNumber
 
         Star path lineNumber ->
-            Runner.Star.init time path lineNumber
+            Runner.Star.init flags path lineNumber
 
         Move sourcePath lineNumber destinationPath ->
-            Runner.Move.init time sourcePath lineNumber destinationPath
+            Runner.Move.init flags sourcePath lineNumber destinationPath
 
         List _ ->
-            Runner.List.init
+            Runner.List.init flags

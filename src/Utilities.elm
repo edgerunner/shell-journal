@@ -1,10 +1,4 @@
-module Utilities exposing (Time, anyOf, applySecond, clip, combineWith, handleError, only, optionalString, splat2, splat3)
-
-import Time exposing (Posix, Zone)
-
-
-type alias Time =
-    ( Posix, Zone )
+module Utilities exposing (anyOf, applySecond, clip, combineWith, handleError, only, optionalString, shoehorn, splat2, splat3)
 
 
 handleError : (err -> ok) -> Result err ok -> ok
@@ -88,3 +82,8 @@ splat3 mapA mapB mapC x =
 anyOf : List (subject -> Bool) -> subject -> Bool
 anyOf predicates subject =
     List.foldl ((|>) subject >> (||)) False predicates
+
+
+shoehorn : (a -> b -> c) -> b -> a -> c
+shoehorn fn b a =
+    fn a b

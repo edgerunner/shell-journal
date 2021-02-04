@@ -1,10 +1,11 @@
-module Command.Path exposing (Path(..), parser, toString, toTitle)
+module Command.Path exposing (Path(..), parser, toFSPath, toString, toTitle)
 
+import Flags exposing (Flags)
 import Parser as P exposing ((|.), (|=), Parser)
 import Set
 import Time
 import Time.Extra as TE
-import Utilities exposing (Time, anyOf)
+import Utilities exposing (anyOf)
 
 
 type Path
@@ -229,23 +230,33 @@ tagPathParser =
 -- Path strings
 
 
-toString : Time -> Path -> String
-toString time path =
+toString : Flags -> Path -> String
+toString flags path =
     case path of
         Date year date ->
-            datePath time year date
+            datePath flags year date
 
         Tag tag ->
             tag
 
         RelativeDate keyword ->
             keyword
-                |> relativeToAbsoluteDate time
-                |> toString time
+                |> relativeToAbsoluteDate flags
+                |> toString flags
 
 
-toYearString : Time -> Maybe Int -> String
-toYearString ( posix, zone ) =
+toFSPath : Flags -> Path -> String
+toFSPath flags path =
+    flags.basePath ++ toString flags path ++ extension
+
+
+extension : String
+extension =
+    ".shjo"
+
+
+toYearString : Flags -> Maybe Int -> String
+toYearString { posix, zone } =
     Maybe.withDefault (Time.toYear zone posix)
         >> String.fromInt
 
@@ -290,29 +301,29 @@ toMonthString month =
             "12"
 
 
-datePath : Time -> Maybe Int -> DatePath -> String
-datePath time year date =
+datePath : Flags -> Maybe Int -> DatePath -> String
+datePath flags year date =
     case date of
         Year ->
-            toYearString time year
+            toYearString flags year
 
         Quarter quarter ->
             String.concat
-                [ toYearString time year
+                [ toYearString flags year
                 , "-q"
                 , String.fromInt quarter
                 ]
 
         Month month ->
             String.concat
-                [ toYearString time year
+                [ toYearString flags year
                 , "-"
                 , toMonthString month
                 ]
 
         Week week ->
             String.concat
-                [ toYearString time year
+                [ toYearString flags year
                 , "-w"
                 , String.fromInt week
                     |> String.padLeft 2 '0'
@@ -320,7 +331,7 @@ datePath time year date =
 
         Day month day ->
             String.concat
-                [ toYearString time year
+                [ toYearString flags year
                 , "-"
                 , toMonthString month
                 , "-"
@@ -329,8 +340,8 @@ datePath time year date =
                 ]
 
 
-relativeToAbsoluteDate : Time -> RelativeDateKeyword -> Path
-relativeToAbsoluteDate (( posix, zone ) as time) dateReference =
+relativeToAbsoluteDate : Flags -> RelativeDateKeyword -> Path
+relativeToAbsoluteDate ({ posix, zone } as flags) dateReference =
     let
         parts =
             TE.posixToParts zone posix
@@ -384,10 +395,14 @@ relativeToAbsoluteDate (( posix, zone ) as time) dateReference =
                            )
 
         Next keyword ->
-            relativeToAbsoluteDate ( shift 1 time keyword, zone ) (This keyword)
+            relativeToAbsoluteDate
+                { flags | posix = shift 1 flags keyword }
+                (This keyword)
 
         Last keyword ->
-            relativeToAbsoluteDate ( shift -1 time keyword, zone ) (This keyword)
+            relativeToAbsoluteDate
+                { flags | posix = shift -1 flags keyword }
+                (This keyword)
 
 
 weekdayInterval : Time.Weekday -> TE.Interval
@@ -415,8 +430,8 @@ weekdayInterval weekday =
             TE.Sunday
 
 
-shift : Int -> Time -> DateBlockKeyword -> Time.Posix
-shift offset ( posix, zone ) keyword =
+shift : Int -> Flags -> DateBlockKeyword -> Time.Posix
+shift offset { posix, zone } keyword =
     let
         add interval =
             TE.add interval offset zone posix

@@ -27,12 +27,13 @@ port module Runner exposing
 
 import Command.Path as Path exposing (Path)
 import FS
+import Flags exposing (Flags)
 import Json.Decode as Jd
 import Page exposing (Page)
 import Parser
 import Result
 import Style
-import Utilities exposing (Time)
+import Utilities
 
 
 port put : String -> Cmd msg
@@ -63,26 +64,26 @@ type Update
     | Done
 
 
-loadPath : Time -> Path -> Cmd Msg
-loadPath time =
-    Path.toString time >> fullPath >> FS.read
+loadPath : Flags -> Path -> Cmd Msg
+loadPath flags =
+    Path.toFSPath flags >> FS.read
 
 
 
 -- Stepping helpers
 
 
-loadPageThen : Time -> Path -> Runner -> ( Update, Cmd Msg )
-loadPageThen time path thenDo =
+loadPageThen : Flags -> Path -> Runner -> ( Update, Cmd Msg )
+loadPageThen flags path thenDo =
     ( Update thenDo onPageLoad
-    , loadPath time path
+    , loadPath flags path
     )
 
 
-savePageThen : Time -> Path -> Page -> Runner -> ( Update, Cmd Msg )
-savePageThen time path page runner =
+savePageThen : Flags -> Path -> Page -> Runner -> ( Update, Cmd Msg )
+savePageThen flags path page runner =
     ( Update runner onPageSave
-    , FS.write (Path.toString time path |> fullPath) (Page.toString page)
+    , FS.write (Path.toFSPath flags path) (Page.toString page)
     )
 
 
@@ -149,7 +150,7 @@ errorMessage : Error -> String
 errorMessage error =
     case error of
         FilesystemError (FS.NotFound path) ->
-            "There isn't a file called " ++ path ++ " in the Shell Journal folder"
+            "There isn't a file at " ++ path
 
         FilesystemError _ ->
             "Could not access that file"
@@ -187,11 +188,6 @@ onPageList =
         >> Result.andThen (Jd.decodeValue (Jd.list Jd.string) >> Result.mapError DecodingError)
         >> Result.map GotPageList
         |> FS.subscription
-
-
-fullPath : String -> String
-fullPath path =
-    String.concat [ ".shjo/", path, ".shjo" ]
 
 
 
