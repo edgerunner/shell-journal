@@ -96,17 +96,9 @@ step2 ctx sourcePage =
                 lineError ctx.sourcePath sourcePage ctx.lineNumber
 
         Just sourceLine ->
-            let
-                doTransfer =
-                    transfer ctx sourcePage sourceLine
-            in
             Runner.run
-                |> Runner.handlePageLoad doTransfer
-                |> Runner.handlePageNotFound
-                    (doTransfer Page.blank
-                        |> Runner.log "Creating blank page"
-                        |> always
-                    )
+                |> Runner.handlePageLoadOrNew
+                    (transfer ctx sourcePage sourceLine)
 
 
 step3 : Context -> Page -> Page -> Runner

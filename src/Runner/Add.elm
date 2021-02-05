@@ -31,15 +31,7 @@ step1 ctx =
             Page.add ctx.bullet ctx.body
     in
     Runner.run
-        |> Runner.handlePageLoad (addTo >> runWith)
-        |> Runner.handlePageNotFound
-            (always
-                (Page.blank
-                    |> addTo
-                    |> runWith
-                    |> Runner.log "Opening a new page"
-                )
-            )
+        |> Runner.handlePageLoadOrNew (addTo >> runWith)
 
 
 step2 : Context -> Page -> Runner

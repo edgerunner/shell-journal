@@ -8,6 +8,7 @@ port module Runner exposing
     , fail
     , handleGotPageList
     , handlePageLoad
+    , handlePageLoadOrNew
     , handlePageNotFound
     , handlePageSave
     , init
@@ -96,6 +97,24 @@ handlePageLoad handler next msg =
     case msg of
         Ok (LoadedPage page) ->
             handler page
+
+        _ ->
+            next msg
+
+
+handlePageLoadOrNew : (Page -> ( Update, Cmd Msg )) -> Runner -> Runner
+handlePageLoadOrNew handler next msg =
+    case msg of
+        Ok (LoadedPage page) ->
+            handler page
+
+        Err (FilesystemError (FS.NotFound _)) ->
+            handler Page.blank
+                |> log
+                    (Style.escape [ Style.magenta, Style.dim ]
+                        ++ " Opening a new page "
+                        ++ Style.escape [ Style.reset ]
+                    )
 
         _ ->
             next msg
