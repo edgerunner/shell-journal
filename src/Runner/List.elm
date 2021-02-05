@@ -20,8 +20,6 @@ step1 =
             (clump
                 >> String.join "\n"
                 >> String.replace ".shjo" ""
-                >> String.replace "-w" " week "
-                >> String.replace "-q" " quarter "
                 >> String.cons '\n'
                 >> Runner.log
                 >> (|>) Runner.done
