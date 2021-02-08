@@ -42,9 +42,9 @@ step1 ctx =
             )
 
 
-lineError : Path -> Page -> Int -> ( Update, Cmd Msg )
-lineError path page lineNumber =
-    Runner.putPage path page
+lineError : Flags -> Path -> Page -> Int -> ( Update, Cmd Msg )
+lineError flags path page lineNumber =
+    Runner.putPage flags path page
         |> Runner.doneWith
         |> (String.concat
                 [ "Line number "
@@ -53,7 +53,7 @@ lineError path page lineNumber =
                 , Style.escape [ Style.not Style.bold ]
                 , " is not in the page for "
                 , Style.escape [ Style.bold ]
-                , Path.toTitle path
+                , Path.toTitle flags path
                 , Style.escape [ Style.reset ]
                 ]
                 |> Runner.logError
@@ -85,7 +85,7 @@ transfer ctx sourcePage sourceLine destinationPage =
     in
     modifiedSourceResult
         |> Result.map mappedResult
-        |> Runner.fail (Page.lineErrorMessage <| Path.toTitle ctx.sourcePath)
+        |> Runner.fail (Page.lineErrorMessage <| Path.toTitle ctx.flags ctx.sourcePath)
 
 
 step2 : Context -> Page -> Runner
@@ -93,7 +93,7 @@ step2 ctx sourcePage =
     case Page.get ctx.lineNumber sourcePage of
         Nothing ->
             always <|
-                lineError ctx.sourcePath sourcePage ctx.lineNumber
+                lineError ctx.flags ctx.sourcePath sourcePage ctx.lineNumber
 
         Just sourceLine ->
             Runner.run
@@ -116,7 +116,7 @@ step4 ctx modifiedSource modifiedDestination =
         |> Runner.handlePageSave
             (Runner.doneWith <|
                 Cmd.batch
-                    [ Runner.putPage ctx.destinationPath <| Page.clip 2 modifiedDestination
-                    , Runner.putPage ctx.sourcePath <| Page.clip 1 modifiedSource
+                    [ Runner.putPage ctx.flags ctx.destinationPath <| Page.clip 2 modifiedDestination
+                    , Runner.putPage ctx.flags ctx.sourcePath <| Page.clip 1 modifiedSource
                     ]
             )

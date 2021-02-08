@@ -38,4 +38,4 @@ step2 : Context -> Page -> Runner
 step2 ctx page =
     Runner.run
         |> Runner.handlePageSave
-            (Runner.doneWith <| Runner.putPage ctx.path <| Page.clip 2 page)
+            (Runner.doneWith <| Runner.putPage ctx.flags ctx.path <| Page.clip 2 page)

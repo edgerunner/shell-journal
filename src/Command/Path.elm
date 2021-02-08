@@ -456,14 +456,14 @@ shift offset { posix, zone } keyword =
             add <| weekdayInterval weekday
 
 
-toTitle : Path -> String
-toTitle path =
+toTitle : Flags -> Path -> String
+toTitle flags path =
     case path of
         Tag tag ->
             "# " ++ tag
 
         RelativeDate keyword ->
-            case keyword of
+            (case keyword of
                 This KwDay ->
                     "Today"
 
@@ -480,7 +480,11 @@ toTitle path =
                     "Next " ++ dateBlockToTitle kw
 
                 Last kw ->
-                    "Last " ++ dateBlockToTitle kw
+                    "Last "
+                        ++ dateBlockToTitle kw
+            )
+                ++ " — "
+                ++ toTitle flags (relativeToAbsoluteDate flags keyword)
 
         Date maybeYear date ->
             (case date of

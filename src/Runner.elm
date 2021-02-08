@@ -213,11 +213,11 @@ onPageList =
 -- Output helpers
 
 
-putPage : Path -> Page -> Cmd msg
-putPage path page =
+putPage : Flags -> Path -> Page -> Cmd msg
+putPage flags path page =
     Cmd.batch
         [ put <| Page.terminalOutput page
-        , put <| title <| Path.toTitle path
+        , put <| title <| Path.toTitle flags path
         ]
 
 

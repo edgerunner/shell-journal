@@ -6,12 +6,12 @@ import Runner exposing (Msg, Runner, Update(..))
 
 
 init : Flags -> Path -> ( Update, Cmd Msg )
-init time path =
-    Runner.loadPageThen time path (pendingPageLoad path)
+init flags path =
+    Runner.loadPageThen flags path (pendingPageLoad flags path)
 
 
-pendingPageLoad : Path -> Runner
-pendingPageLoad path =
+pendingPageLoad : Flags -> Path -> Runner
+pendingPageLoad flags path =
     Runner.run
         |> Runner.handlePageLoad
-            (Runner.putPage path >> Runner.doneWith)
+            (Runner.putPage flags path >> Runner.doneWith)

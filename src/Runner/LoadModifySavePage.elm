@@ -18,14 +18,14 @@ step1 flags path modify =
             (modify
                 >> Result.map
                     (\modifiedPage ->
-                        savePageThen flags path modifiedPage (step2 path modifiedPage)
+                        savePageThen flags path modifiedPage (step2 flags path modifiedPage)
                     )
-                >> Runner.fail (Page.lineErrorMessage <| Path.toTitle path)
+                >> Runner.fail (Page.lineErrorMessage <| Path.toTitle flags path)
             )
 
 
-step2 : Path -> Page -> Runner
-step2 path page =
+step2 : Flags -> Path -> Page -> Runner
+step2 flags path page =
     Runner.run
         |> handlePageSave
-            (Runner.doneWith <| Runner.putPage path (Page.clip 2 page))
+            (Runner.doneWith <| Runner.putPage flags path (Page.clip 2 page))
