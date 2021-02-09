@@ -48,7 +48,6 @@ parser =
 pathParser : Parser Path
 pathParser =
     P.succeed identity
-        |. P.symbol "@"
         |= P.oneOf
             [ dateKeywordParser
             , datePathParser
@@ -219,6 +218,7 @@ keywords =
 tagPathParser : Parser Path
 tagPathParser =
     P.succeed Tag
+        |. P.symbol "@"
         |= P.variable
             { start = Char.isAlpha
             , inner = anyOf [ Char.isAlphaNum, (==) '-' ]
