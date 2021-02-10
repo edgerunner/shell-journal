@@ -1,4 +1,4 @@
-module Page exposing (Line, LineError(..), Page, add, blank, check, clip, get, lineErrorMessage, lineToString, move, parse, star, terminalOutput, toString)
+module Page exposing (Line, LineError(..), Page, add, blank, check, clip, get, lineErrorMessage, lineToString, move, parse, star, strike, terminalOutput, toString)
 
 import Bullet exposing (Bullet(..), TaskState(..))
 import Parser exposing ((|.), (|=), Parser)
@@ -14,6 +14,7 @@ type alias Line =
     { bullet : Bullet
     , body : String
     , star : Bool
+    , strike : Bool
     , highlight : Bool
     , lineNumber : Int
     }
@@ -44,6 +45,7 @@ line lineNumber =
         |= Bullet.parser
         |= body
         |= starParser
+        |= strikeParser
         |. Parser.symbol "\n"
         |= Parser.succeed False
         |= Parser.succeed lineNumber
@@ -52,7 +54,7 @@ line lineNumber =
 body : Parser String
 body =
     Parser.succeed ()
-        |. Parser.chompWhile (\c -> (c /= '\n') && (c /= '★'))
+        |. Parser.chompWhile (\c -> (c /= '\n') && (c /= '★') && (c /= '⌧'))
         |> Parser.getChompedString
         |> Parser.map String.trim
 
@@ -71,6 +73,20 @@ starSymbol =
     "★"
 
 
+strikeParser : Parser Bool
+strikeParser =
+    Parser.oneOf
+        [ Parser.succeed True
+            |. Parser.symbol strikeSymbol
+        , Parser.succeed False
+        ]
+
+
+strikeSymbol : String
+strikeSymbol =
+    "⌧"
+
+
 check : Int -> Page -> Result LineError Page
 check =
     only (.bullet >> (==) (Task Pending))
@@ -84,6 +100,14 @@ star =
     only (not << .star)
         >> Maybe.map (\l -> { l | star = True })
         >> Result.fromMaybe (InvalidOperation "That line is already starred")
+        |> modifyByLineNumber
+
+
+strike : Int -> Page -> Result LineError Page
+strike =
+    only (not << .strike)
+        >> Maybe.map (\l -> { l | strike = True })
+        >> Result.fromMaybe (InvalidOperation "That line is already struck out")
         |> modifyByLineNumber
 
 
@@ -151,6 +175,7 @@ lineToString thisLine =
         ++ moveDestination thisLine
         ++ thisLine.body
         ++ optionalString (" " ++ starSymbol) thisLine.star
+        ++ optionalString strikeSymbol thisLine.strike
         ++ "\n"
 
 
@@ -176,13 +201,9 @@ colorLine thisLine =
         )
         ++ (String.padLeft 3 ' ' <| String.fromInt thisLine.lineNumber)
         ++ escape [ Style.reset ]
-        ++ (if thisLine.star then
-                escape [ Style.bold ]
-
-            else
-                ""
-           )
+        ++ escapeIf thisLine.star [ Style.bold ]
         ++ " "
+        ++ escapeIf thisLine.strike [ Style.dim, Style.background Style.black ]
         ++ colorCode thisLine.bullet
         ++ Bullet.symbol thisLine.bullet
         ++ " "
@@ -190,6 +211,15 @@ colorLine thisLine =
         ++ thisLine.body
         ++ optionalString yellowStar thisLine.star
         ++ escape [ Style.reset ]
+
+
+escapeIf : Bool -> List (Style.Style f c) -> String
+escapeIf cond styles =
+    if cond then
+        escape styles
+
+    else
+        ""
 
 
 moveDestination : Line -> String
@@ -239,6 +269,7 @@ add bullet content p =
         [ { bullet = bullet
           , body = content
           , star = False
+          , strike = False
           , highlight = True
           , lineNumber = List.length p + 1
           }

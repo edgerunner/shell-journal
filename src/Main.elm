@@ -10,6 +10,7 @@ import Runner.Check
 import Runner.List
 import Runner.Move
 import Runner.Star
+import Runner.Strike
 import Runner.View
 
 
@@ -43,6 +44,9 @@ selectCommand ( command, flags ) =
 
         Star path lineNumber ->
             Runner.Star.init flags path lineNumber
+
+        Strike path lineNumber ->
+            Runner.Strike.init flags path lineNumber
 
         Move sourcePath lineNumber destinationPath ->
             Runner.Move.init flags sourcePath lineNumber destinationPath
