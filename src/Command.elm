@@ -10,6 +10,7 @@ type Command
     | Add Path Bullet String
     | Check Path Int
     | Star Path Int
+    | Strike Path Int
     | Move Path Int Path
     | List Path
 
@@ -42,6 +43,10 @@ commandParser path_ =
             |= P.int
         , P.succeed (Star path_)
             |. P.keyword "star"
+            |. P.spaces
+            |= P.int
+        , P.succeed (Strike path_)
+            |. P.keyword "strike"
             |. P.spaces
             |= P.int
         , P.succeed (Move path_)
@@ -78,6 +83,9 @@ path command =
             path_
 
         Star path_ _ ->
+            path_
+
+        Strike path_ _ ->
             path_
 
         Check path_ _ ->

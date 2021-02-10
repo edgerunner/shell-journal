@@ -1,4 +1,4 @@
-module Page exposing (Line, LineError(..), Page, add, blank, check, clip, get, lineErrorMessage, lineToString, move, parse, star, terminalOutput, toString)
+module Page exposing (Line, LineError(..), Page, add, blank, check, clip, get, lineErrorMessage, lineToString, move, parse, star, strike, terminalOutput, toString)
 
 import Bullet exposing (Bullet(..), TaskState(..))
 import Parser exposing ((|.), (|=), Parser)
@@ -100,6 +100,14 @@ star =
     only (not << .star)
         >> Maybe.map (\l -> { l | star = True })
         >> Result.fromMaybe (InvalidOperation "That line is already starred")
+        |> modifyByLineNumber
+
+
+strike : Int -> Page -> Result LineError Page
+strike =
+    only (not << .strike)
+        >> Maybe.map (\l -> { l | strike = True })
+        >> Result.fromMaybe (InvalidOperation "That line is already struck out")
         |> modifyByLineNumber
 
 
