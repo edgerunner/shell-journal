@@ -1,0 +1,4 @@
+· accomodate spaces in filepaths
+· handle windows file paths
+· normalize relative paths
+· use color in filepath title formatting

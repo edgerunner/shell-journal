@@ -12,6 +12,7 @@ type Path
     = Date (Maybe Int) DatePath
     | RelativeDate RelativeDateKeyword
     | Tag String
+    | File (List String)
 
 
 type DatePath
@@ -52,6 +53,7 @@ pathParser =
             [ dateKeywordParser
             , datePathParser
             , tagPathParser
+            , filePathParser
             , P.problem "The @ symbol must be followed by a date keyword, date or tag"
             ]
         |. closerParser
@@ -226,6 +228,15 @@ tagPathParser =
             }
 
 
+filePathParser : Parser Path
+filePathParser =
+    P.succeed File
+        |. P.symbol "/"
+        |= (P.getChompedString (P.chompUntilEndOr " ")
+                |> P.map (String.split "/")
+           )
+
+
 
 -- Path strings
 
@@ -244,10 +255,18 @@ toString flags path =
                 |> relativeToAbsoluteDate flags
                 |> toString flags
 
+        File segments ->
+            "/" ++ String.join "/" segments
+
 
 toFSPath : Flags -> Path -> String
 toFSPath flags path =
-    flags.basePath ++ toString flags path ++ extension
+    case path of
+        File _ ->
+            toString flags path ++ extension
+
+        _ ->
+            flags.basePath ++ toString flags path ++ extension
 
 
 extension : String
@@ -524,6 +543,9 @@ toTitle flags path =
                         Nothing ->
                             ""
                    )
+
+        File segments ->
+            "/ " ++ String.join " / " segments
 
 
 monthToTitle : Time.Month -> String
