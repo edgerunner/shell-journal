@@ -17,7 +17,8 @@ step1 : Runner
 step1 =
     Runner.run
         |> Runner.handleGotPageList
-            (clump
+            (List.filter (String.endsWith ".shjo")
+                >> clump
                 >> String.join "\n"
                 >> String.replace ".shjo" ""
                 >> String.cons '\n'

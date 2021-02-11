@@ -8,4 +8,4 @@
 · page command (set default page)
 · struck tasks should not respond to check or star commands
 · index command
-· list command should filter out non-shjo files
+╳ list command should filter out non-shjo files
