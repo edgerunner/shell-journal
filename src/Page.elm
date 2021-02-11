@@ -3,7 +3,7 @@ module Page exposing (Line, LineError(..), Page, add, blank, check, clip, get, l
 import Bullet exposing (Bullet(..), TaskState(..))
 import Parser exposing ((|.), (|=), Parser)
 import Style exposing (escape)
-import Utilities exposing (only, optionalString)
+import Utilities exposing (ensure, optionalString)
 
 
 type alias Page =
@@ -89,25 +89,38 @@ strikeSymbol =
 
 check : Int -> Page -> Result LineError Page
 check =
-    only (.bullet >> (==) (Task Pending))
-        >> Maybe.map (\l -> { l | bullet = Task Done })
-        >> Result.fromMaybe (InvalidOperation "It doesn't make sense to check a line that isn't a pending task")
+    ensure
+        (not << .strike)
+        (InvalidOperation "That line is struck out. No point in checking it now.")
+        >> Result.andThen
+            (ensure
+                (.bullet >> (==) (Task Pending))
+                (InvalidOperation "It doesn't make sense to check a line that isn't a pending task")
+            )
+        >> Result.map (\l -> { l | bullet = Task Done })
         |> modifyByLineNumber
 
 
 star : Int -> Page -> Result LineError Page
 star =
-    only (not << .star)
-        >> Maybe.map (\l -> { l | star = True })
-        >> Result.fromMaybe (InvalidOperation "That line is already starred")
+    ensure
+        (not << .strike)
+        (InvalidOperation "That line is struck out. No point in starring it now.")
+        >> Result.andThen
+            (ensure
+                (not << .star)
+                (InvalidOperation "That line is already starred")
+            )
+        >> Result.map (\l -> { l | star = True })
         |> modifyByLineNumber
 
 
 strike : Int -> Page -> Result LineError Page
 strike =
-    only (not << .strike)
-        >> Maybe.map (\l -> { l | strike = True })
-        >> Result.fromMaybe (InvalidOperation "That line is already struck out")
+    ensure
+        (not << .strike)
+        (InvalidOperation "That line is already struck out")
+        >> Result.map (\l -> { l | strike = True })
         |> modifyByLineNumber
 
 

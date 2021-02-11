@@ -1,4 +1,4 @@
-module Utilities exposing (anyOf, applySecond, clip, combineWith, handleError, only, optionalString, shoehorn, splat2, splat3)
+module Utilities exposing (anyOf, applySecond, clip, combineWith, ensure, handleError, only, optionalString, shoehorn, splat2, splat3)
 
 
 handleError : (err -> ok) -> Result err ok -> ok
@@ -18,6 +18,15 @@ only predicate value =
 
     else
         Nothing
+
+
+ensure : (a -> Bool) -> e -> a -> Result e a
+ensure predicate error value =
+    if predicate value then
+        Ok value
+
+    else
+        Err error
 
 
 optionalString : String -> Bool -> String
