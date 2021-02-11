@@ -1,4 +1,5 @@
-var Elm = require('../runtime/main').Elm;
+var pwd = process.env['PWD'];
+var Elm = require(pwd + '/runtime/main').Elm;
 var fs = require('fs/promises');
 var os = require('os');
 
