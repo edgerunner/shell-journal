@@ -9,3 +9,4 @@
 ╳ struck tasks should not respond to check or star commands
 · index command
 ╳ list command should filter out non-shjo files
+- consider what the index command should show, and then work from there to figure out the actual indexing system
