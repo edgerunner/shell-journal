@@ -17,6 +17,8 @@ main.ports.put.subscribe(function(output) {
   console.log(output + "\n");
 });
 
+main.ports.exit.subscribe(function(exitCode) { process.exitCode = exitCode })
+
 process.chdir(os.homedir());
 
 main.ports.fsRequest.subscribe(({method, args}) => {

@@ -20,7 +20,7 @@ type alias Context =
 init : Flags -> Path -> Int -> Path -> ( Update, Cmd Msg )
 init flags sourcePath lineNumber destinationPath =
     if Path.toString flags sourcePath == Path.toString flags destinationPath then
-        Runner.done
+        Runner.done 1
             |> Runner.logError "The origin and destination pages are the same"
             |> Runner.log
                 ("The move command transfers a pending task from one page to another. "

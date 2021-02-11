@@ -154,10 +154,10 @@ run : Runner
 run msg =
     case msg of
         Err error ->
-            logError (errorMessage error) done
+            logError (errorMessage error) (done 1)
 
         Ok _ ->
-            logError "Invalid state. This is a bug!" done
+            logError "Invalid state. This is a bug!" (done 2)
 
 
 init : Runner -> Sub Msg -> Cmd Msg -> ( Update, Cmd Msg )
@@ -256,14 +256,17 @@ doneWith =
     Tuple.pair Done
 
 
-done : ( Update, Cmd Msg )
-done =
-    ( Done, Cmd.none )
+port exit : Int -> Cmd msg
+
+
+done : Int -> ( Update, Cmd Msg )
+done exitCode =
+    ( Done, exit exitCode )
 
 
 fail : (error -> String) -> Result error ( Update, Cmd Msg ) -> ( Update, Cmd Msg )
 fail errorToMessage =
-    Utilities.handleError (errorToMessage >> logError >> (|>) done)
+    Utilities.handleError (errorToMessage >> logError >> (|>) (done 1))
 
 
 

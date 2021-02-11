@@ -23,7 +23,7 @@ step1 =
                 >> String.replace ".shjo" ""
                 >> String.cons '\n'
                 >> Runner.log
-                >> (|>) Runner.done
+                >> (|>) (Runner.done 0)
             )
 
 
