@@ -12,14 +12,18 @@ type alias Flags =
     }
 
 
-decode : (String -> Result String command) -> Value -> Result Jd.Error ( command, Flags )
-decode commandParser =
-    Jd.decodeValue (decoder commandParser)
+type alias CommandParser command =
+    Maybe String -> String -> Result String command
 
 
-decoder : (String -> Result String command) -> Decoder ( command, Flags )
-decoder commandParser =
-    Jd.map2 Tuple.pair (commandDecoder commandParser) flagsDecoder
+decode : CommandParser command -> Value -> Result Jd.Error ( command, Flags )
+decode parser =
+    Jd.decodeValue (decoder parser)
+
+
+decoder : CommandParser command -> Decoder ( command, Flags )
+decoder parser =
+    Jd.map2 Tuple.pair (commandDecoder parser) flagsDecoder
 
 
 flagsDecoder : Decoder Flags
@@ -58,20 +62,26 @@ zoneOffsetDecoder =
     Jd.field "zone" Jd.int
 
 
-commandDecoder : (String -> Result String command) -> Jd.Decoder command
-commandDecoder commandParser =
-    argsDecoder
-        |> Jd.andThen
-            (commandParser
-                >> Result.map Jd.succeed
-                >> handleError Jd.fail
-            )
+commandDecoder : CommandParser command -> Jd.Decoder command
+commandDecoder parser =
+    Jd.map2 parser defaultPageDecoder argsDecoder
+        |> Jd.andThen parserToDecoder
+
+
+parserToDecoder : Result String a -> Jd.Decoder a
+parserToDecoder =
+    Result.map Jd.succeed >> handleError Jd.fail
 
 
 argsDecoder : Jd.Decoder String
 argsDecoder =
     Jd.field "args" (Jd.list Jd.string)
         |> Jd.map (String.join " ")
+
+
+defaultPageDecoder : Decoder (Maybe String)
+defaultPageDecoder =
+    envDecoder "SHJO_PAGE" Jd.string
 
 
 basePathDecoder : Decoder String
