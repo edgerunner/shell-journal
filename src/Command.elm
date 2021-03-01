@@ -15,15 +15,15 @@ type Command
     | List Path
 
 
-parse : String -> Result String Command
-parse =
-    P.run parser
+parse : Maybe String -> String -> Result String Command
+parse defaultPath =
+    (P.run <| parser defaultPath)
         >> Result.mapError P.deadEndsToString
 
 
-parser : Parser Command
-parser =
-    Path.parser
+parser : Maybe String -> Parser Command
+parser defaultPath =
+    Path.parser defaultPath
         |. P.spaces
         |> P.andThen commandParser
 
@@ -54,7 +54,7 @@ commandParser path_ =
             |. P.spaces
             |= P.int
             |. P.spaces
-            |= Path.parser
+            |= Path.parser Nothing
         , P.succeed (List path_)
             |. P.keyword "list"
         , P.succeed (View path_)

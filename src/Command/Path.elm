@@ -5,7 +5,7 @@ import Parser as P exposing ((|.), (|=), Parser)
 import Set
 import Time
 import Time.Extra as TE
-import Utilities exposing (anyOf)
+import Utilities exposing (anyOf, handleError)
 
 
 type Path
@@ -38,12 +38,25 @@ type DateBlockKeyword
     | KwYear
 
 
-parser : Parser Path
-parser =
+parser : Maybe String -> Parser Path
+parser defaultPathString =
     P.oneOf
         [ pathParser
-        , P.succeed (RelativeDate (This KwDay))
+        , defaultPathParser defaultPathString
         ]
+
+
+defaultPathParser : Maybe String -> Parser Path
+defaultPathParser defaultPathString =
+    case defaultPathString of
+        Nothing ->
+            P.succeed <| RelativeDate <| This KwDay
+
+        Just pathString ->
+            P.run pathParser pathString
+                |> Result.map P.succeed
+                |> Result.mapError (always "Problem parsing the default page environment variable.")
+                |> handleError P.problem
 
 
 pathParser : Parser Path

@@ -10,3 +10,5 @@
 · index command
 ╳ list command should filter out non-shjo files
 - consider what the index command should show, and then work from there to figure out the actual indexing system
+- it is practically not possible to alter a shell environment from a child process
+- it may be a better idea to keep configuration in a file
