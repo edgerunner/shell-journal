@@ -1,6 +1,8 @@
 module Page exposing (Line, LineError(..), Page, add, blank, check, clip, get, lineErrorMessage, lineToString, move, parse, star, strike, terminalOutput, toString)
 
 import Bullet exposing (Bullet(..), TaskState(..))
+import Command.Path as Path
+import Flags exposing (Flags)
 import Parser exposing ((|.), (|=), Parser)
 import Style exposing (escape)
 import Utilities exposing (ensure, optionalString)
@@ -175,17 +177,17 @@ blank =
     []
 
 
-toString : Page -> String
-toString =
-    List.map lineToString
+toString : Flags -> Page -> String
+toString flags =
+    List.map (lineToString flags)
         >> String.join ""
 
 
-lineToString : Line -> String
-lineToString thisLine =
+lineToString : Flags -> Line -> String
+lineToString flags thisLine =
     Bullet.symbol thisLine.bullet
         ++ " "
-        ++ moveDestination thisLine
+        ++ moveDestination flags thisLine
         ++ thisLine.body
         ++ optionalString (" " ++ starSymbol) thisLine.star
         ++ optionalString strikeSymbol thisLine.strike
@@ -196,15 +198,15 @@ lineToString thisLine =
 -- Color output
 
 
-terminalOutput : Page -> String
-terminalOutput lines =
+terminalOutput : Flags -> Page -> String
+terminalOutput flags lines =
     lines
-        |> List.map colorLine
+        |> List.map (colorLine flags)
         |> String.join "\n"
 
 
-colorLine : Line -> String
-colorLine thisLine =
+colorLine : Flags -> Line -> String
+colorLine flags thisLine =
     escape
         (if thisLine.highlight then
             [ Style.bright Style.yellow ]
@@ -220,7 +222,7 @@ colorLine thisLine =
         ++ colorCode thisLine.bullet
         ++ Bullet.symbol thisLine.bullet
         ++ " "
-        ++ moveDestination thisLine
+        ++ moveDestination flags thisLine
         ++ thisLine.body
         ++ optionalString yellowStar thisLine.star
         ++ escape [ Style.reset ]
@@ -235,11 +237,11 @@ escapeIf cond styles =
         ""
 
 
-moveDestination : Line -> String
-moveDestination thisLine =
+moveDestination : Flags -> Line -> String
+moveDestination flags thisLine =
     case thisLine.bullet of
         Task (Moved destination lineNumber) ->
-            "[" ++ destination ++ ":" ++ String.fromInt lineNumber ++ "] "
+            "[" ++ Path.toString flags destination ++ ":" ++ String.fromInt lineNumber ++ "] "
 
         _ ->
             ""
@@ -290,12 +292,17 @@ add bullet content p =
 
 
 move : String -> Int -> Int -> Page -> Result LineError Page
-move destination destinationLineNumber =
+move destinationString destinationLineNumber =
     modifyByLineNumber
         (\line_ ->
             case line_.bullet of
                 Task Pending ->
-                    Ok { line_ | bullet = Task (Moved destination destinationLineNumber) }
+                    case Parser.run Path.pathParser destinationString of
+                        Ok destination ->
+                            Ok { line_ | bullet = Task (Moved destination destinationLineNumber) }
+
+                        Err _ ->
+                            Err <| InvalidOperation "Could not parse the destination path"
 
                 _ ->
                     Err <| InvalidOperation "I only move pending tasks. Sorry."
