@@ -1,5 +1,6 @@
-module Bullet exposing (Bullet(..), TaskState(..), parser, symbol)
+module Bullet exposing (Bullet(..), TaskState(..), parser, symbol, target)
 
+import Command.Path as Path exposing (Path)
 import Parser exposing ((|.), (|=), Parser)
 
 
@@ -12,7 +13,7 @@ type Bullet
 type TaskState
     = Pending
     | Done
-    | Moved String Int
+    | Moved Path Int
 
 
 symbol : Bullet -> String
@@ -47,11 +48,9 @@ parser =
 taskMovedParser : Parser Bullet
 taskMovedParser =
     Parser.succeed Moved
-        |. Parser.symbol (symbol <| Task <| Moved "" 0)
+        |. Parser.symbol ">"
         |. Parser.symbol " ["
-        |= (Parser.chompUntil ":"
-                |> Parser.getChompedString
-           )
+        |= Path.pathParser
         |. Parser.symbol ":"
         |= Parser.int
         |. Parser.symbol "]"
@@ -62,3 +61,13 @@ parserFor : Bullet -> Parser Bullet
 parserFor thisBullet =
     Parser.succeed thisBullet
         |. Parser.symbol (symbol thisBullet)
+
+
+target : Bullet -> Maybe Path
+target bullet =
+    case bullet of
+        Task (Moved path _) ->
+            Just path
+
+        _ ->
+            Nothing

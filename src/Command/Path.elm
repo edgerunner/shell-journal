@@ -1,4 +1,4 @@
-module Command.Path exposing (Path(..), parser, toFSPath, toString, toTitle)
+module Command.Path exposing (Path(..), parser, pathParser, toFSPath, toString, toTitle)
 
 import Flags exposing (Flags)
 import Parser as P exposing ((|.), (|=), Parser)
@@ -75,7 +75,7 @@ pathParser =
 closerParser : Parser ()
 closerParser =
     P.oneOf
-        [ P.chompIf ((/=) ' ') |> P.andThen (always <| P.problem "path must end properly")
+        [ P.chompIf Char.isAlphaNum |> P.andThen (always <| P.problem "path must end properly")
         , P.succeed ()
         ]
 

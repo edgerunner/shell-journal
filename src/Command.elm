@@ -13,6 +13,7 @@ type Command
     | Strike Path Int
     | Move Path Int Path
     | List Path
+    | Follow Path Int
 
 
 parse : Maybe String -> String -> Result String Command
@@ -47,6 +48,10 @@ commandParser path_ =
             |= P.int
         , P.succeed (Strike path_)
             |. P.keyword "strike"
+            |. P.spaces
+            |= P.int
+        , P.succeed (Follow path_)
+            |. P.keyword "follow"
             |. P.spaces
             |= P.int
         , P.succeed (Move path_)
@@ -95,4 +100,7 @@ path command =
             path_
 
         List path_ ->
+            path_
+
+        Follow path_ _ ->
             path_

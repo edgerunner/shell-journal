@@ -84,7 +84,7 @@ loadPageThen flags path thenDo =
 savePageThen : Flags -> Path -> Page -> Runner -> ( Update, Cmd Msg )
 savePageThen flags path page runner =
     ( Update runner onPageSave
-    , FS.write (Path.toFSPath flags path) (Page.toString page)
+    , FS.write (Path.toFSPath flags path) (Page.toString flags page)
     )
 
 
@@ -216,7 +216,7 @@ onPageList =
 putPage : Flags -> Path -> Page -> Cmd msg
 putPage flags path page =
     Cmd.batch
-        [ put <| Page.terminalOutput page
+        [ put <| Page.terminalOutput flags page
         , put <| title <| Path.toTitle flags path
         ]
 

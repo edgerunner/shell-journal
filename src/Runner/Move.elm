@@ -1,6 +1,5 @@
 module Runner.Move exposing (init)
 
-import Command
 import Command.Path as Path exposing (Path)
 import Flags exposing (Flags)
 import Page exposing (Page)
