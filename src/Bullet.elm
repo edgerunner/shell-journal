@@ -1,4 +1,4 @@
-module Bullet exposing (Bullet(..), TaskState(..), parser, symbol)
+module Bullet exposing (Bullet(..), TaskState(..), parser, symbol, target)
 
 import Command.Path as Path exposing (Path)
 import Parser exposing ((|.), (|=), Parser)
@@ -61,3 +61,13 @@ parserFor : Bullet -> Parser Bullet
 parserFor thisBullet =
     Parser.succeed thisBullet
         |. Parser.symbol (symbol thisBullet)
+
+
+target : Bullet -> Maybe Path
+target bullet =
+    case bullet of
+        Task (Moved path _) ->
+            Just path
+
+        _ ->
+            Nothing

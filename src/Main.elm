@@ -7,6 +7,7 @@ import Json.Decode exposing (Value)
 import Runner exposing (Msg, Update)
 import Runner.Add
 import Runner.Check
+import Runner.Follow
 import Runner.List
 import Runner.Move
 import Runner.Star
@@ -53,3 +54,6 @@ selectCommand ( command, flags ) =
 
         List _ ->
             Runner.List.init flags
+
+        Follow path lineNumber ->
+            Runner.Follow.init flags path lineNumber
