@@ -96,8 +96,10 @@ step2 ctx sourcePage =
 
         Just sourceLine ->
             Runner.run
-                |> Runner.handlePageLoadOrNew
+                |> Runner.handlePageLoad
                     (transfer ctx sourcePage sourceLine)
+                |> Runner.handlePageNotFound
+                    (always <| transfer ctx sourcePage sourceLine Page.blank)
 
 
 step3 : Context -> Page -> Page -> Runner
