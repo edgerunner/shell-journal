@@ -1,10 +1,11 @@
 module Runner.Follow exposing (init)
 
 import Bullet
-import Command.Path exposing (Path)
+import Command.Path as Path exposing (Path)
 import Flags exposing (Flags)
 import Page
 import Runner exposing (Msg, Runner, Update)
+import Style exposing (escape)
 
 
 type alias Context =
@@ -26,6 +27,7 @@ step1 context =
             Runner.loadPageThen context.flags
                 (Tuple.first target)
                 (step2 context target)
+                |> logOrigin
 
         withPage page =
             Page.get context.lineNumber page
@@ -33,6 +35,15 @@ step1 context =
                 |> Maybe.andThen Bullet.target
                 |> Maybe.map withTarget
                 |> Maybe.withDefault notFound
+
+        logOrigin =
+            escape [ Style.dim ]
+                ++ "  Following line #"
+                ++ String.fromInt context.lineNumber
+                ++ " on "
+                ++ Path.toTitle context.flags context.path
+                ++ escape [ Style.reset ]
+                |> Runner.log
 
         notFound =
             Runner.logError "Can't follow that. There's no link there" (Runner.done 1)
