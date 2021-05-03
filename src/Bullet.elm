@@ -63,11 +63,11 @@ parserFor thisBullet =
         |. Parser.symbol (symbol thisBullet)
 
 
-target : Bullet -> Maybe Path
+target : Bullet -> Maybe ( Path, Int )
 target bullet =
     case bullet of
-        Task (Moved path _) ->
-            Just path
+        Task (Moved path lineNumber) ->
+            Just ( path, lineNumber )
 
         _ ->
             Nothing

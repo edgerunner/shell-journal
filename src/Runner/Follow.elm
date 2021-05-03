@@ -7,21 +7,28 @@ import Page
 import Runner exposing (Msg, Runner, Update)
 
 
+type alias Context =
+    { flags : Flags
+    , path : Path
+    , lineNumber : Int
+    }
+
+
 init : Flags -> Path -> Int -> ( Update, Cmd Msg )
 init flags path lineNumber =
-    Runner.loadPageThen flags path (step1 flags lineNumber)
+    Runner.loadPageThen flags path (step1 <| Context flags path lineNumber)
 
 
-step1 : Flags -> Int -> Runner
-step1 flags lineNumber =
+step1 : Context -> Runner
+step1 context =
     let
         withTarget target =
-            Runner.loadPageThen flags
-                target
-                (step2 flags target)
+            Runner.loadPageThen context.flags
+                (Tuple.first target)
+                (step2 context target)
 
         withPage page =
-            Page.get lineNumber page
+            Page.get context.lineNumber page
                 |> Maybe.map .bullet
                 |> Maybe.andThen Bullet.target
                 |> Maybe.map withTarget
@@ -34,8 +41,15 @@ step1 flags lineNumber =
         |> Runner.handlePageLoad withPage
 
 
-step2 : Flags -> Path -> Runner
-step2 flags path =
+step2 : Context -> ( Path, Int ) -> Runner
+step2 { flags } ( path, lineNumber ) =
     Runner.run
         |> Runner.handlePageLoad
-            (Runner.putPage flags path >> Runner.doneWith)
+            (Page.highlight lineNumber
+                >> Result.map
+                    (Page.clip 2
+                        >> Runner.putPage flags path
+                        >> Runner.doneWith
+                    )
+                >> Result.withDefault (Runner.done 1)
+            )

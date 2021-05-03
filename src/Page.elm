@@ -1,4 +1,4 @@
-module Page exposing (Line, LineError(..), Page, add, blank, check, clip, get, lineErrorMessage, lineToString, move, parse, star, strike, terminalOutput, toString)
+module Page exposing (Line, LineError(..), Page, add, blank, check, clip, get, highlight, lineErrorMessage, lineToString, move, parse, star, strike, terminalOutput, toString)
 
 import Bullet exposing (Bullet(..), TaskState(..))
 import Command.Path as Path
@@ -124,6 +124,11 @@ strike =
         (InvalidOperation "That line is already struck out")
         >> Result.map (\l -> { l | strike = True })
         |> modifyByLineNumber
+
+
+highlight : Int -> Page -> Result LineError Page
+highlight =
+    modifyByLineNumber Ok
 
 
 type LineError
