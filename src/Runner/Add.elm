@@ -31,7 +31,8 @@ step1 ctx =
             Page.add ctx.bullet ctx.body
     in
     Runner.run
-        |> Runner.handlePageLoadOrNew (addTo >> runWith)
+        |> Runner.handlePageLoad (addTo >> runWith)
+        |> Runner.handlePageNotFound (addTo Page.blank |> runWith |> always)
 
 
 step2 : Context -> Page -> Runner
