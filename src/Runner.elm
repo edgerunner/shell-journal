@@ -13,7 +13,6 @@ port module Runner exposing
     , handlePageSave
     , init
     , loadPageThen
-    , loadPath
     , log
     , logError
     , onPageList
@@ -65,27 +64,20 @@ type Update
     | Done
 
 
-loadPath : Flags -> Path -> Cmd Msg
-loadPath flags =
-    Path.toFSPath flags >> FS.read
-
-
 
 -- Stepping helpers
 
 
 loadPageThen : Flags -> Path -> Runner -> ( Update, Cmd Msg )
-loadPageThen flags path thenDo =
-    ( Update thenDo onPageLoad
-    , loadPath flags path
-    )
+loadPageThen flags path runner =
+    init runner onPageLoad (FS.read (Path.toFSPath flags path))
 
 
 savePageThen : Flags -> Path -> Page -> Runner -> ( Update, Cmd Msg )
 savePageThen flags path page runner =
-    ( Update runner onPageSave
-    , FS.write (Path.toFSPath flags path) (Page.toString flags page)
-    )
+    init runner
+        onPageSave
+        (FS.write (Path.toFSPath flags path) (Page.toString flags page))
 
 
 
