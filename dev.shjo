@@ -1,6 +1,6 @@
 · interactive create path/project
 · context command
-· follow command
+╳ follow command
 · explore specs
 · shell completions
 ╳ exit status
@@ -12,3 +12,4 @@
 - consider what the index command should show, and then work from there to figure out the actual indexing system
 - it is practically not possible to alter a shell environment from a child process
 - it may be a better idea to keep configuration in a file
+╳ chain follow
