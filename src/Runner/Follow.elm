@@ -6,6 +6,7 @@ import Flags exposing (Flags)
 import Page
 import Runner exposing (Msg, Runner, Update)
 import Style exposing (escape)
+import Utilities
 
 
 type alias Context =
@@ -54,13 +55,29 @@ step1 context =
 
 step2 : Context -> ( Path, Int ) -> Runner
 step2 { flags } ( path, lineNumber ) =
-    Runner.run
-        |> Runner.handlePageLoad
-            (Page.highlight lineNumber
+    let
+        checkChain page =
+            page
+                |> Page.get lineNumber
+                |> Maybe.map .bullet
+                |> Maybe.andThen Bullet.target
+                |> Maybe.map followChain
+                |> Maybe.withDefault (printDestination page)
+
+        followChain (( nextPath, _ ) as target) =
+            Runner.loadPageThen
+                flags
+                nextPath
+                (step1 (Utilities.combineWith (Context flags) target))
+
+        printDestination =
+            Page.highlight lineNumber
                 >> Result.map
                     (Page.clip 2
                         >> Runner.putPage flags path
                         >> Runner.doneWith
                     )
                 >> Result.withDefault (Runner.done 1)
-            )
+    in
+    Runner.run
+        |> Runner.handlePageLoad checkChain
